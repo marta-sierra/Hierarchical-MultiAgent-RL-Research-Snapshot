@@ -1,0 +1,6 @@
+# The scenario grid every experiment runs unless it sets its own `scenarios` (ADR-0021): the two load
+# knobs of the traffic generator (ADR-0017), 7 x 4 = 28 scenarios. Erlangs and rho per cell:
+# docs/summaries_tfg/offered-load-grid.md.
+n_dus: [1, 2, 4, 8, 16, 32, 64]
+s: [1.0, 2.0, 4.0, 8.0]
+load_class: [null]

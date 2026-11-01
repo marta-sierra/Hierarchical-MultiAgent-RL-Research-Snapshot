@@ -1,0 +1,35 @@
+# Traffic generator config (docs/TRAFFIC.md §13). Relative paths are resolved against the repo root.
+trace:
+  path: TrafficGenerator/traces.csv
+  drop_rntis: [65534, 65535]     # paging, system information (A3)
+  codeword_mcs: max              # ADR-0018 (A4)
+  retransmissions: drop          # ADR-0018 (A5)
+split:
+  block_s: 20                    # ADR-0017
+  superblock_s: 120              # ADR-0017
+  split_seed: 0                  # ADR-0017: drawn once, saved with stage A
+  stratum_size: 5
+  per_stratum: {train: 3, val: 1, test: 1}
+radio:
+  slot_ms: 0.5                   # mu = 1 (ADR-0019)
+  carrier_prb: 273               # 100 MHz at 30 kHz (ADR-0019)
+  pusch_prb: 250                 # 273 - 23 for PUCCH / PRACH (ADR-0019)
+  re_per_prb: 156                # ADR-0019
+  layers: 1                      # ADR-0019
+  mcs_table: 38.214-T2           # ADR-0019
+  lte_to_nr_mcs: B               # ADR-0018
+  buffer_expiry_slots: 4         # ADR-0019: always on
+channel:
+  cloudric_dir: data/cloudric    # measured CPU / GPU decoders (ADR-0016)
+  snr_decay_db: 1.0              # ADR-0020: SNR = snr_min(MCS, nPRB) + k, P(k) ∝ exp(-k / decay); author's
+                                 #   decision, see notebooks/cloudric_service_models.ipynb §6
+timing:
+  k2_slots: 4                    # ADR-0020
+  fronthaul_ms: 0.0              # ADR-0020: simplification (real ~0.1)
+  jitter_ms: 0.0                 # ADR-0020: simplification
+load:                            # default knobs for scripts; generate() takes them explicitly
+  n_dus: 1                       # ADR-0017
+  s: 1.0                         # ADR-0017
+cache:
+  dir: data/cache                # gitignored
+# not traffic parameters: deadline D (simulator, ADR-0013), service times and energies (sim/, ADR-0016)

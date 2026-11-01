@@ -1,0 +1,15 @@
+# Example heterogeneous topology (ADR-0010). Each server needs exactly one cpu executor (ADR-0011).
+# capacity = parallel units behind one FIFO (CPU cores). Each GPU is its own executor (capacity 1),
+# chosen by the server policy, with its own static floor and on/off (ADR-0010). params: kind-specific model inputs (ADR-0015), TBD.
+# Optional per executor: `model: <registered name>` (default: the model named after `kind`),
+# `t_off_ms`: idle time before the executor is released / switched off (ADR-0004; default 10 s).
+servers:
+  - executors:
+      - {kind: cpu, capacity: 16, params: {}}
+      - {kind: gpu, capacity: 1, params: {}}
+  - executors:
+      - {kind: cpu, capacity: 4, params: {}}
+      - {kind: gpu, capacity: 1, params: {}}     # GPU1
+      - {kind: gpu, capacity: 1, params: {}}     # GPU2
+  - executors:
+      - {kind: cpu, capacity: 8, params: {}}

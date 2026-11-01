@@ -1,0 +1,12 @@
+nul
+venv/
+__pycache__/
+results/
+tensorboard_logs/
+data/*
+!data/cloudric/
+
+.DS_Store
+.venv/
+*.egg-info/
+!measurements/cpu_processing/results/

@@ -1,0 +1,17 @@
+# Smallest end-to-end run: checks the pipeline (traffic -> sim -> metrics -> report) in a minute.
+name: smoke
+seeds: [0, 1]
+split: test
+topology: configs/topology/example.yaml
+sim: configs/sim/default.yaml
+traffic: configs/traffic/default.yaml
+scenarios:
+  n_dus: [1]
+  s: [1.0]
+  load_class: [null]
+methods:
+  - {name: rr, switch: round_robin, server: round_robin}
+  - {name: ll_lq, switch: least_loaded, server: least_queued}
+  - {name: ll_fastest, switch: least_loaded, server: fastest}
+save_records: false
+check_invariants: true

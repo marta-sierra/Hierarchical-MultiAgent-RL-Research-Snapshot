@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulator dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --page: #EEF0F3; --panel: #FFFFFF; --soft: #F7F8FA; --line: #DDE1E7; --line2: #E6E9EE; --dash: #C6CCD5;
+  --ink: #15181E; --muted: #556070; --faint: #8A93A1; --arrow: #AEB5C0;
+  --blue: #2F6FDB; --blue-bg: #E8EFFC; --blue-fg: #1A4495;
+  --amber: #C77D00; --amber-bg: #FFF0D4; --amber-fg: #6E4300;
+  --red: #D6452B; --red-bg: #FDE3DD; --red-fg: #97240F;
+  --green: #1F8F5F; --green-bg: #E2F3EA; --green-fg: #145C3D;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.35 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+button, select, input { font: inherit; color: inherit; }
+a { color: var(--blue-fg); }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.cap { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.btn { height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn:hover { background: var(--soft); }
+.btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+#app { position: relative; min-height: 100vh; display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 18px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+
+/* top bar */
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; padding: 12px 18px; }
+.title { display: flex; flex-direction: column; gap: 3px; flex: 1 1 320px; min-width: 0; }
+.title b { font-size: 16px; }
+.clock { display: flex; align-items: center; gap: 12px; }
+.clock .t { font: 600 26px/1.1 var(--mono); text-align: right; }
+.paused { background: var(--ink); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 4px 8px; border-radius: 5px; }
+.kpis { display: flex; gap: 22px; flex-wrap: wrap; }
+.kpi { display: flex; flex-direction: column; gap: 2px; }
+.kpi span:first-child { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+.kpi span:last-child { font: 600 20px/1.1 var(--mono); }
+.hdr-btns { display: flex; gap: 8px; }
+.btn.bad { background: var(--red-bg); color: var(--red-fg); border-color: var(--red); }
+
+/* tokens (job, optionally with its task C/L) */
+.tok { display: inline-flex; align-items: center; justify-content: center; gap: 3px; height: 26px; min-width: 42px; padding: 0 7px;
+  border: 1.5px solid var(--bd); background: var(--bg); color: var(--fg); border-radius: 7px; font: 600 12px/1 var(--mono); cursor: pointer; flex: none; }
+.tok small { font-weight: 500; opacity: .75; font-size: 12px; }
+.tok.ok { --bd: var(--blue); --bg: var(--blue-bg); --fg: var(--blue-fg); }
+.tok.tight { --bd: var(--amber); --bg: var(--amber-bg); --fg: var(--amber-fg); }
+.tok.late, .tok.fail { --bd: var(--red); --bg: var(--red-bg); --fg: var(--red-fg); }
+.tok.met { --bd: var(--green); --bg: var(--green-bg); --fg: var(--green-fg); }
+.tok.on { outline: 2.5px solid var(--ink); outline-offset: 2px; }
+.has-sel .tok:not(.on) { opacity: .4; }
+.more { color: var(--muted); font-size: 11.5px; flex: none; }
+
+/* flow */
+main { overflow-x: auto; }
+#flow { min-width: 1160px; padding: 16px 18px 14px; display: grid; grid-template-columns: 104px 34px 112px 34px 200px 34px minmax(0, 1fr); align-items: center; }
+.colhead { align-self: start; padding-bottom: 10px; }
+.arrow { display: flex; align-items: center; padding: 0 4px; }
+.arrow i { flex: 1; height: 2px; background: var(--arrow); }
+.arrow b { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--arrow); }
+.cells { display: flex; flex-direction: column; gap: 10px; }
+.du { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; background: var(--soft); }
+.du .n { margin-left: auto; font: 600 11px/1 var(--mono); color: var(--blue-fg); }
+.note { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+.arrivals { display: flex; flex-direction: column; gap: 8px; align-items: center; border: 1.5px dashed var(--dash); border-radius: 10px; padding: 12px 8px; min-height: 60px; }
+.switch { display: flex; flex-direction: column; gap: 10px; border: 2px solid var(--ink); border-radius: 12px; padding: 14px; }
+.switch .h { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wbars { display: flex; align-items: flex-end; gap: 4px; height: 30px; }
+.wbars i { width: 18px; background: var(--blue); border-radius: 2px; min-height: 2px; }
+.servers { display: flex; flex-direction: column; }
+.srow { position: relative; display: flex; align-items: flex-start; }
+.srow + .srow { padding-top: 12px; }
+.bus { position: absolute; left: 0; width: 2px; background: var(--arrow); }
+.stub { position: relative; width: 56px; flex: none; height: 26px; margin-top: 27px; display: flex; align-items: center; }
+.srow + .srow .stub { margin-top: 27px; }
+.stub > i { position: absolute; left: 0; right: 6px; top: 12px; height: 2px; background: var(--arrow); }
+.stub > b { position: absolute; right: 0; top: 8px; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--arrow); }
+.stub > div { position: relative; display: flex; padding-left: 5px; }
+.card { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; background: var(--panel); }
+.card .h { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.card .name { font-weight: 700; font-size: 15px; }
+.spec { color: var(--muted); font-size: 12px; }
+.belief { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.lbars { display: flex; flex-direction: column; gap: 3px; width: 120px; }
+.lbars div { height: 8px; border-radius: 2px; position: relative; }
+.lbars div:first-child { background: var(--page); }
+.lbars i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+.lbars .real { background: var(--ink); }
+.lbars .seen { border: 1.5px dashed var(--muted); }
+.btxt { font-size: 12px; line-height: 1.3; min-width: 190px; }
+.behind { color: var(--amber-fg); font-weight: 600; }
+.waitrow { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.waitrow > span:first-child { width: 118px; flex: none; }
+.exrow { display: flex; align-items: center; gap: 8px; }
+.queue { flex: 1; min-width: 0; min-height: 36px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; padding: 3px 8px; border: 1.5px dashed var(--dash); border-radius: 8px; overflow: hidden; }
+.queue .lead { margin-right: auto; }
+.qempty { color: var(--faint); font-size: 12px; }
+.warn { font-size: 11.5px; font-weight: 700; color: var(--amber-fg); background: var(--amber-bg); border-radius: 5px; padding: 3px 7px; flex: none; }
+.chev { color: var(--arrow); font-weight: 700; }
+.units { display: flex; align-items: center; gap: 10px; flex: none; width: 330px; padding: 6px 10px; border-radius: 8px; background: var(--soft); border: 1px solid var(--line2); }
+.units .info { width: 150px; flex: none; display: flex; flex-direction: column; gap: 5px; }
+.units .kind { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; }
+.units .kind span { color: var(--muted); font-weight: 500; }
+.pwr { width: 7px; height: 7px; border-radius: 50%; background: var(--arrow); }
+.pwr.on { background: var(--green); }
+.meter { display: flex; gap: 2px; flex-wrap: wrap; }
+.meter i { width: 7px; height: 12px; border-radius: 2px; background: #fff; box-shadow: inset 0 0 0 1px var(--arrow); }
+.meter i.b { background: var(--ink); box-shadow: none; }
+.busy { display: flex; gap: 6px; flex-wrap: wrap; min-width: 104px; }
+.unit { display: flex; flex-direction: column; gap: 3px; }
+.prog { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.prog i { display: block; height: 100%; }
+.lastdec { font-size: 12px; color: var(--muted); }
+.lastdec b { color: var(--ink); }
+.legend { min-width: 1160px; border-top: 1px solid var(--line2); padding: 10px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; font-size: 12px; color: var(--muted); }
+.legend > span { display: flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid; }
+
+/* timeline */
+footer { padding: 12px 18px 14px; display: flex; flex-direction: column; gap: 8px; }
+.tlhead { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+#tl { position: relative; cursor: pointer; touch-action: none; user-select: none; }
+.bars { position: relative; height: 56px; }
+.bars > div { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 1px; }
+.bars > div i { flex: 1; border-radius: 1px 1px 0 0; background: #D5DAE2; }
+.bars > div.past i { background: #8E9AAD; }
+.fails { position: relative; height: 12px; margin-top: 3px; }
+.tick { position: absolute; top: 0; width: 8px; height: 12px; transform: translateX(-4px); padding: 0; border: none; background: none; cursor: pointer; }
+.tick::after { content: ""; position: absolute; left: 3px; top: 0; width: 2px; height: 12px; background: var(--red); }
+.tick.fut { opacity: .45; }
+.track { position: relative; height: 6px; margin-top: 5px; background: #E3E6EB; border-radius: 3px; }
+.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); border-radius: 3px; }
+.track b { position: absolute; top: -5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2.5px solid var(--ink); transform: translateX(-8px); }
+.nowline { position: absolute; top: 0; height: 76px; border-left: 1.5px solid var(--ink); pointer-events: none; }
+.axis { display: flex; justify-content: space-between; margin-top: 5px; font: 500 11px/1 var(--mono); color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 2px; }
+.ctl { display: flex; align-items: center; gap: 6px; }
+.ib { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 9px; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ib.play { width: 52px; height: 44px; border: none; border-radius: 10px; background: var(--ink); }
+.speeds { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.speeds button { height: 36px; min-width: 46px; padding: 0 9px; border-radius: 8px; cursor: pointer; font: 600 12.5px/1 var(--mono); background: #fff; border: 1px solid var(--line); }
+.speeds button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* drawer */
+aside { position: fixed; top: 16px; right: 20px; bottom: 18px; width: 420px; max-width: calc(100% - 40px); background: #fff; border: 1px solid var(--dash);
+  border-radius: 12px; box-shadow: 0 18px 48px rgba(21, 24, 30, .18); padding: 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; z-index: 5; }
+aside[hidden] { display: none; }
+.dhead { display: flex; align-items: flex-start; gap: 10px; }
+.dhead > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.dhead .big { font-weight: 700; font-size: 18px; }
+.chip { font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; border: 1px solid; }
+.chip.ok { background: var(--blue-bg); color: var(--blue-fg); border-color: var(--blue); }
+.chip.tight { background: var(--amber-bg); color: var(--amber-fg); border-color: var(--amber); }
+.chip.late, .chip.fail { background: var(--red-bg); color: var(--red-fg); border-color: var(--red); }
+.chip.met { background: var(--green-bg); color: var(--green-fg); border-color: var(--green); }
+.chip.future { background: var(--soft); color: var(--muted); border-color: var(--line); }
+.close { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.sec { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line2); padding-top: 12px; }
+.sec .sh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sec .sh b { font-weight: 700; }
+.sec .sh span { font: 500 12px/1 var(--mono); color: var(--muted); }
+.small { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; border-bottom: 1px solid var(--page); padding-bottom: 6px; }
+.kv b { text-align: right; }
+table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+th { color: var(--muted); font-weight: 500; padding: 4px 6px 4px 0; text-align: left; }
+td { padding: 5px 6px 5px 0; border-top: 1px solid var(--page); font-family: var(--mono); vertical-align: top; }
+tr.chosen td { background: var(--soft); font-weight: 600; }
+td.worse { color: var(--red-fg); font-weight: 600; }
+.gantt { position: relative; padding-left: 26px; }
+.grow { position: relative; height: 26px; margin-bottom: 4px; }
+.grow > span { position: absolute; left: -26px; top: 6px; font: 600 12px/1 var(--mono); }
+.grow > div { position: relative; height: 100%; background: var(--soft); border-radius: 4px; overflow: hidden; }
+.seg { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; }
+.seg.sw { background: #C9CED6; }
+.seg.wait { background: #E3E6EB; box-shadow: inset 0 0 0 1px #C9CED6; }
+.seg.queue { background: #F2DCA6; }
+.seg.svc { background: var(--blue); }
+.seg.cut { width: 4px; background: repeating-linear-gradient(45deg, var(--red) 0 3px, #F6C5BB 3px 6px); top: 1px; bottom: 1px; }
+.fade { position: absolute; top: 0; bottom: 0; right: 0; background: rgba(247, 248, 250, .65); }
+.vline { position: absolute; top: -6px; pointer-events: none; }
+.gaxis { position: relative; height: 16px; margin-top: 6px; font: 500 10.5px/1 var(--mono); color: var(--muted); }
+.gaxis span { position: absolute; white-space: nowrap; }
+.glegend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: var(--muted); }
+.glegend span { display: flex; align-items: center; gap: 5px; }
+.glegend i { width: 12px; height: 9px; border-radius: 2px; }
+.steps td:first-child { font-family: inherit; color: var(--muted); }
+.ok-t { color: var(--green-fg); font-weight: 700; } .bad-t { color: var(--red-fg); font-weight: 700; }
+
+/* setup */
+#setup { position: fixed; inset: 0; background: rgba(21, 24, 30, .55); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+#setup[hidden] { display: none; }
+#setup .dlg { background: #fff; border-radius: 12px; width: min(860px, 100%); max-height: 94vh; overflow: auto; padding: 18px 20px; }
+#setup h2 { margin: 0 0 10px; font-size: 18px; }
+#setup fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 0 0 10px; padding: 8px 12px 12px; }
+#setup legend { font-weight: 700; padding: 0 4px; }
+#setup .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+#setup label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12.5px; }
+#setup label input, #setup label select { color: var(--ink); padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.err { background: var(--red-bg); border: 1px solid var(--red); border-radius: 8px; padding: 8px 10px; margin: 6px 0; white-space: pre-wrap; font: 11px/1.4 var(--mono); max-height: 240px; overflow: auto; }
+</style>
+</head>
+<body>
+<div id="setup">
+  <div class="dlg">
+    <h2>New simulation</h2>
+    <form id="setupForm">
+      <fieldset><legend>Traffic (acmad.traffic.generate)</legend>
+        <div class="grid">
+          <label>seed (one for everything, ADR-0002)<input name="seed" type="number" step="1" required></label>
+          <label>split<select name="split"></select></label>
+          <label>super-block load class<select name="load_class"></select></label>
+          <label>n_dus (cells)<input name="n_dus" type="number" min="1" step="1" required></label>
+          <label>s (bit multiplier)<input name="s" type="number" min="0.01" step="any" required></label>
+          <label>horizon [ms] (jobs arriving before it)<input name="horizon_ms" type="number" min="0.5" step="any" required></label>
+        </div>
+        <div class="note" style="margin-top:6px">A full generator episode lasts 20 s (~3k jobs/s with 3 DUs); the dashboard simulates only the jobs that arrive before the horizon.</div>
+      </fieldset>
+      <fieldset><legend>Topology (configs/topology/*.yaml)</legend>
+        <div class="grid"><label>topology<select name="topology"></select></label></div>
+        <div id="topoPreview" class="mono note" style="margin-top:6px"></div>
+      </fieldset>
+      <fieldset><legend>Simulator (SimConfig)</legend>
+        <div class="grid">
+          <label>deadline D [ms]<input name="deadline_ms" type="number" step="any" required></label>
+          <label>downlink [ms]<input name="downlink_ms" type="number" min="0" step="any" required></label>
+          <label>uplink (ACK) [ms]<input name="uplink_ms" type="number" min="0" step="any" required></label>
+          <label>estimator<select name="estimator"></select></label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Policies (registry)</legend>
+        <div class="grid">
+          <label>switch policy<select name="switch_policy"></select></label>
+          <label>server policy<select name="server_policy"></select></label>
+        </div>
+      </fieldset>
+      <div id="setupErr"></div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button type="submit" id="runBtn" class="btn dark">Generate traffic and simulate</button>
+        <button type="button" id="cancelBtn" class="btn" hidden>Cancel</button>
+        <span id="setupStatus" class="muted"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="app">
+  <header class="panel">
+    <div class="title"><b>5G uplink processing on a shared server pool</b><div id="subtitle" class="muted" style="font-size:12.5px"></div></div>
+    <div class="clock"><div><div id="tnow" class="t">t = 0.00 ms</div><div id="tend" class="muted" style="font-size:12px; text-align:right"></div></div><span id="paused" class="paused">PAUSED</span></div>
+    <div id="kpis" class="kpis"></div>
+    <div class="hdr-btns"><button id="bChecks" class="btn" data-act="checks"></button><button id="bNew" class="btn">New run</button><a class="btn" href="/results" style="display:inline-flex;align-items:center;text-decoration:none">Results →</a></div>
+  </header>
+
+  <main class="panel">
+    <div id="flow"></div>
+    <div class="legend">
+      <span><span class="tok ok" style="cursor:default">74<small>L</small></span>job · task (C = CPU processing, L = LDPC decoding)</span>
+      <span><span class="sw" style="border-color:var(--blue); background:var(--blue-bg)"></span>enough slack</span>
+      <span><span class="sw" style="border-color:var(--amber); background:var(--amber-bg)"></span>tight (&lt; 30 % of D left)</span>
+      <span><span class="sw" style="border-color:var(--red); background:var(--red-bg)"></span>will miss</span>
+      <span><span style="width:26px; height:7px; background:var(--ink); border-radius:2px"></span>real load (busy + queued)</span>
+      <span><span style="width:26px; height:7px; border:1.5px dashed var(--muted); border-radius:2px"></span>what the switch believes (last ACK)</span>
+      <span><span class="meter"><i class="b"></i><i></i></span>units busy / idle</span>
+      <span><span class="pwr on"></span>executor powered on</span>
+    </div>
+  </main>
+
+  <footer class="panel">
+    <div class="tlhead"><span>Jobs in the system</span><span style="display:flex; align-items:center; gap:6px"><span style="width:2px; height:11px; background:var(--red)"></span>deadline miss (click to open the job)</span></div>
+    <div id="tl">
+      <div class="bars"><div id="barsFut"></div><div id="barsPast" class="past"></div></div>
+      <div id="fails" class="fails"></div>
+      <div class="track"><i id="trackFill"></i><b id="trackThumb"></b></div>
+      <div id="nowline" class="nowline"></div>
+      <div id="axis" class="axis"></div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <button class="ib" id="bStart" aria-label="Go to start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v14"/><path d="M18 6 9 12l9 6Z"/></svg></button>
+        <button class="ib" id="bPrev" aria-label="Previous event"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg></button>
+        <button class="ib play" id="bPlay" aria-label="Play"></button>
+        <button class="ib" id="bNext" aria-label="Next event"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+        <button class="ib" id="bEnd" aria-label="Go to end"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5v14"/><path d="m6 6 9 6-9 6Z"/></svg></button>
+      </div>
+      <div class="speeds" id="speeds"></div>
+      <div style="flex:1"></div>
+      <div id="evpos" class="mono muted" style="font-size:11.5px"></div>
+      <div class="muted" style="font-size:12px">Space play/pause · ← → step one event · Esc close</div>
+    </div>
+  </footer>
+
+  <aside id="drawer" hidden></aside>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const ORDER = ["arrival", "dispatch", "receive", "ready", "decision", "enqueue", "start", "end"];
+const STAGE_STATUS = { arrival: "switch", dispatch: "flight", receive: "blocked", ready: "ready", decision: "ready",
+                       enqueue: "queued", start: "service" };
+const STATUS_TEXT = { future: "not arrived yet", switch: "at the switch", flight: "in flight on the downlink",
+                      blocked: "waiting for its C", ready: "waiting for the server decision", queued: "queued",
+                      service: "in service", met: "finished on time", missed: "aborted at the deadline",
+                      dropped: "dropped at the deadline" };
+const LETTER = { cpu_processing: "C", ldpc_decoding: "L" };
+const SPEEDS = [0.1, 0.25, 0.5, 1, 2];
+const TIGHT = 0.3;            // fraction of D below which slack is "tight" (display only)
+const MAXQ = 8, MAXARR = 6;   // tokens shown before "+n"
+const NBINS = 240;
+const ICON_PLAY = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M7 4.5v15l13-7.5Z"/></svg>';
+const ICON_PAUSE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#FFFFFF"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>';
+const ICON_CELL = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="1.8" stroke-linecap="round"><path d="M12 10v11"/><path d="M8 21h8"/><path d="M8.5 6.5a5 5 0 0 0 0 7"/><path d="M15.5 6.5a5 5 0 0 1 0 7"/><path d="M5.6 3.6a9 9 0 0 0 0 12.8"/><path d="M18.4 3.6a9 9 0 0 1 0 12.8"/><circle cx="12" cy="10" r="1.2"/></svg>';
+const ICON_SWITCH = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2.5 21.5 12 12 21.5 2.5 12Z"/><path d="M8 12h8"/><path d="m13 9 3 3-3 3"/></svg>';
+const ICON_CLOSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15181E" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
+
+let OPTS = null, EP = null, D = 1;
+let ev = [], evT = [], tasks = new Map(), jobs = [], jobById = new Map(), jobArrT = [];
+let ackSeqs = [], decSwitchSeqs = [], decServerSeqs = [], exHist = [], peakLoad = 1;
+let doneSeqs = [], metSeqs = [], durCum = [], energy = { seq: [], cum: [] }, periods = [];
+let cur = 0, t = 0, playing = false, speed = 0.25, lastFrame = null, dirty = true;
+let sel = null, drawer = null, steps = new Set();
+
+// ------------------------------------------------------------------ helpers
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (x, d = 2) => (x === null || x === undefined || Number.isNaN(x)) ? "—" : (typeof x === "number" ? x.toFixed(d) : String(x));
+const ms = (x, d = 2) => `${fmt(x, d)} ms`;
+function upper(a, x) { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] <= x) lo = m + 1; else hi = m; } return lo; }
+function lower(a, x) { let lo = 0, hi = a.length; while (lo < hi) { const m = (lo + hi) >> 1; if (a[m] < x) lo = m + 1; else hi = m; } return lo; }
+const ordinal = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th");
+const exName = (k, e) => EP.topology[k][e].kind.toUpperCase();
+const timeAt = (c) => (c > 0 ? evT[c - 1] : 0);
+
+// ------------------------------------------------------------------ status of tasks and jobs at an event cursor c
+function status(task, c = cur) {
+  let s = null;
+  for (const k of ORDER) { const i = task.stage[k]; if (i !== undefined && i < c) s = k; }
+  if (s === null) return "future";
+  return s === "end" ? task.outcome : STAGE_STATUS[s];
+}
+const isDone = (s) => s === "met" || s === "missed" || s === "dropped";
+function jobPhase(j, c = cur) {
+  const st = j.tasks.map((id) => status(tasks.get(id), c));
+  if (st.every((s) => s === "future")) return "future";
+  return st.every(isDone) ? "done" : "active";
+}
+// colour of a task / job: met | fail once finished, else late (will miss) | tight | ok
+function taskTone(k, c = cur, tt = t) {
+  const s = status(k, c);
+  if (s === "met") return "met";
+  if (s === "missed" || s === "dropped") return "fail";
+  if (k.outcome !== "met") return "late";
+  return k.deadline_ms - tt < TIGHT * D ? "tight" : "ok";
+}
+function jobTone(j, c = cur, tt = t) {
+  const tones = j.tasks.map((id) => taskTone(tasks.get(id), c, tt));
+  if (tones.includes("fail")) return "fail";
+  if (tones.every((x) => x === "met")) return "met";
+  return tones.includes("late") ? "late" : tones.includes("tight") ? "tight" : "ok";
+}
+function activeJobs(c = cur, tt = t) {
+  const lo = lower(jobArrT, tt - D - 1e-6), hi = upper(jobArrT, tt), out = [];
+  for (let i = lo; i < hi; i++) if (jobPhase(jobs[i], c) === "active") out.push(jobs[i]);
+  return out;
+}
+function tok(jobId, taskId = null, extra = "") {
+  const j = jobById.get(jobId), k = taskId === null ? null : tasks.get(taskId);
+  const tone = k ? taskTone(k) : jobTone(j);
+  const letter = k ? LETTER[k.kind] : "";
+  const what = k ? `job ${jobId}, task ${letter} · ${STATUS_TEXT[status(k)]}` : `job ${jobId}`;
+  return `<button type="button" class="tok ${tone}${sel === jobId ? " on" : ""}" data-job="${jobId}" title="${esc(what)}" aria-label="${esc(what + extra)}">${jobId}${letter ? `<small>${letter}</small>` : ""}</button>`;
+}
+
+// where every active job / task is at cursor c
+function clusterState(c = cur, tt = t) {
+  const S = { arrivals: [], servers: EP.topology.map((ex) => ({ flight: [], waiting: [], execs: ex.map(() => ({ queue: [], service: [] })) })) };
+  for (const j of activeJobs(c, tt)) {
+    let atSwitch = false, flight = false;
+    for (const id of j.tasks) {
+      const k = tasks.get(id), s = status(k, c);
+      if (s === "switch") atSwitch = true;
+      else if (s === "flight") flight = true;
+      else if (s === "blocked" || s === "ready") S.servers[k.server].waiting.push(k);
+      else if (s === "queued") S.servers[k.server].execs[k.executor].queue.push(k);
+      else if (s === "service") S.servers[k.server].execs[k.executor].service.push(k);
+    }
+    if (atSwitch) S.arrivals.push(j);
+    if (flight) S.servers[j.server].flight.push(j);
+  }
+  for (const s of S.servers) for (const e of s.execs) {
+    e.queue.sort((a, b) => a.enqueue_seq - b.enqueue_seq);
+    e.service.sort((a, b) => a.stage.start - b.stage.start);
+  }
+  return S;
+}
+
+// per executor: queued / busy counts after each event that changes them (replay of the recorder log)
+function exCounts(k, e, c) {
+  const h = exHist[k][e], i = lower(h.seq, c) - 1;
+  return i >= 0 ? { q: h.q[i], b: h.b[i] } : { q: 0, b: 0 };
+}
+const realLoad = (k, c) => EP.topology[k].reduce((s, _, e) => { const x = exCounts(k, e, c); return s + x.q + x.b; }, 0);
+const summaryLoad = (summary) => summary.reduce((s, row) => s + row[0] + row[1], 0);   // n_busy + n_queued
+function lastAck(k, c = cur) {
+  const i = lower(ackSeqs[k], c) - 1;
+  return i >= 0 ? ev[ackSeqs[k][i]] : null;
+}
+// jobs dispatched to k that its newest report cannot reflect yet (ClusterState.jobs_since_ack, ADR-0014)
+function sinceAck(k, reportedAt, c = cur, tt = t) {
+  let n = 0;
+  for (let i = lower(jobArrT, reportedAt - EP.params.downlink_ms - D - 1e-6), hi = upper(jobArrT, tt); i < hi; i++) {
+    const j = jobs[i];
+    if (j.server === k && j.dispatchSeq !== undefined && j.dispatchSeq < c && j.tDeliver > reportedAt) n++;
+  }
+  return n;
+}
+
+// ------------------------------------------------------------------ setup
+async function loadOptions() {
+  OPTS = await (await fetch("/api/options")).json();
+  const f = $("#setupForm"), d = OPTS.defaults;
+  const fill = (name, items) => { f[name].innerHTML = items.map((x) => `<option>${esc(x)}</option>`).join(""); };
+  fill("split", OPTS.splits); fill("load_class", OPTS.load_classes); fill("topology", Object.keys(OPTS.topologies));
+  fill("estimator", OPTS.estimators); fill("switch_policy", OPTS.policies.switch); fill("server_policy", OPTS.policies.server);
+  for (const [k, v] of Object.entries(d)) if (f[k]) f[k].value = v;
+  f.topology.onchange = showTopo; showTopo();
+}
+function showTopo() {
+  const cfg = OPTS.topologies[$("#setupForm").topology.value];
+  $("#topoPreview").innerHTML = cfg.servers.map((s, k) => `S${k}: ` + s.executors.map((e) =>
+    `${e.kind.toUpperCase()} ×${e.capacity ?? 1}`).join(" · ")).join("<br>");
+}
+$("#setupForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target, body = {};
+  for (const k of Object.keys(OPTS.defaults)) body[k] = f[k].type === "number" ? Number(f[k].value) : f[k].value;
+  $("#runBtn").disabled = true; $("#setupErr").innerHTML = "";
+  $("#setupStatus").textContent = "Generating traffic and simulating…";
+  try {
+    const r = await fetch("/api/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error + "\n\n" + (data.traceback || ""));
+    load(data);
+    $("#setup").hidden = true;
+  } catch (err) {
+    $("#setupErr").innerHTML = `<div class="err">${esc(err.message)}</div>`;
+  } finally {
+    $("#runBtn").disabled = false; $("#setupStatus").textContent = "";
+  }
+});
+$("#bNew").onclick = () => { playing = false; dirty = true; $("#setup").hidden = false; $("#cancelBtn").hidden = !EP; };
+$("#cancelBtn").onclick = () => { $("#setup").hidden = true; };
+
+// ------------------------------------------------------------------ load an episode
+function load(data) {
+  EP = data; D = data.params.deadline_ms; ev = data.events; evT = ev.map((e) => e.t);
+  tasks = new Map(data.tasks.map((k) => [k.id, k]));
+  jobs = data.jobs.map((j) => ({ ...j, tasks: [] }));
+  jobById = new Map(jobs.map((j) => [j.id, j]));
+  for (const k of data.tasks) jobById.get(k.job).tasks.push(k.id);
+  for (const j of jobs) {
+    j.tasks.sort((a, b) => a - b);
+    const ks = j.tasks.map((id) => tasks.get(id)), k0 = ks[0];
+    j.arrSeq = k0 ? (k0.stage.arrival ?? Infinity) : Infinity;
+    j.dispatchSeq = k0?.stage.dispatch; j.server = k0?.server ?? null; j.tDeliver = k0?.t_deliver_ms ?? Infinity;
+    j.deadline = k0?.deadline_ms ?? j.t_arrival_ms + D;
+    j.endSeq = Math.max(...ks.map((k) => k.stage.end ?? Infinity));
+    j.end = Math.max(...ks.map((k) => k.t_end_ms));
+    j.met = ks.every((k) => k.outcome === "met");
+    const failed = ks.filter((k) => k.outcome !== "met");
+    j.failT = failed.length ? Math.min(...failed.map((k) => k.t_end_ms)) : null;
+  }
+  jobs.sort((a, b) => a.arrSeq - b.arrSeq);
+  jobArrT = jobs.map((j) => j.t_arrival_ms);
+
+  // KPIs: jobs finished by the cursor, their time in system, energy (dynamic per task + static per on-period)
+  const fin = jobs.filter((j) => Number.isFinite(j.endSeq)).sort((a, b) => a.endSeq - b.endSeq);
+  doneSeqs = fin.map((j) => j.endSeq); metSeqs = fin.filter((j) => j.met).map((j) => j.endSeq);
+  let acc = 0; durCum = fin.map((j) => (acc += j.end - j.t_arrival_ms));
+  const en = data.tasks.filter((k) => k.stage.end !== undefined).sort((a, b) => a.stage.end - b.stage.end);
+  acc = 0; energy = { seq: en.map((k) => k.stage.end), cum: en.map((k) => (acc += k.energy_dynamic_j)) };
+  periods = data.on_periods.map((p) => ({ ...p, w: p.t_off_ms > p.t_on_ms ? p.static_j / (p.t_off_ms - p.t_on_ms) : 0 }));
+
+  const K = data.topology.length;
+  ackSeqs = Array.from({ length: K }, () => []); decServerSeqs = Array.from({ length: K }, () => []); decSwitchSeqs = [];
+  exHist = data.topology.map((ex) => ex.map(() => ({ seq: [], q: [], b: [] })));
+  const cnt = data.topology.map((ex) => ex.map(() => ({ q: 0, b: 0 })));
+  const load = new Array(K).fill(0);
+  peakLoad = 1;
+  const DELTA = { enqueue: [1, 0], start: [-1, 1], finish: [0, -1], abort: [0, -1], drop_waiting: [-1, 0] };
+  for (const e of ev) {
+    if (e.type === "ack") ackSeqs[e.server].push(e.seq);
+    else if (e.type === "decision_switch") decSwitchSeqs.push(e.seq);
+    else if (e.type === "decision_server") decServerSeqs[e.server].push(e.seq);
+    const d = DELTA[e.type];
+    if (d) {
+      const x = cnt[e.server][e.executor], h = exHist[e.server][e.executor];
+      x.q += d[0]; x.b += d[1]; load[e.server] += d[0] + d[1];
+      h.seq.push(e.seq); h.q.push(x.q); h.b.push(x.b);
+      peakLoad = Math.max(peakLoad, load[e.server]);
+    }
+  }
+
+  // timeline: jobs in the system per bin, deadline misses
+  const bins = new Array(NBINS).fill(0), w = data.end_ms / NBINS;
+  for (let i = 0; i < NBINS; i++) {
+    const x = (i + 0.5) * w;
+    for (let a = lower(jobArrT, x - D - 1e-6), hi = upper(jobArrT, x); a < hi; a++) if (jobs[a].end > x) bins[i]++;
+  }
+  const mx = Math.max(1, ...bins);
+  const bars = bins.map((n) => `<i style="height:${Math.max(n ? 2 : 0, n / mx * 56).toFixed(1)}px" title=""></i>`).join("");
+  $("#barsFut").innerHTML = bars; $("#barsPast").innerHTML = bars;
+  $("#axis").innerHTML = [0, 1, 2, 3, 4].map((i) => `<span>${+(data.end_ms * i / 4).toFixed(1)} ms</span>`).join("");
+
+  sel = null; drawer = null; steps = new Set(); playing = false;
+  setCursor(0);
+}
+
+// ------------------------------------------------------------------ time control
+function setTime(x) { t = Math.min(Math.max(x, 0), EP.end_ms); cur = upper(evT, t); dirty = true; }
+function setCursor(c) { cur = Math.min(Math.max(c, 0), ev.length); t = timeAt(cur); dirty = true; }
+const step = (d) => { playing = false; setCursor(cur + d); };
+const togglePlay = () => { if (!playing && t >= EP.end_ms) setCursor(0); playing = !playing; dirty = true; };
+$("#bStart").onclick = () => { playing = false; setCursor(0); };
+$("#bEnd").onclick = () => { playing = false; setTime(EP.end_ms); };
+$("#bPrev").onclick = () => step(-1);
+$("#bNext").onclick = () => step(1);
+$("#bPlay").onclick = () => togglePlay();
+$("#speeds").addEventListener("click", (e) => { const b = e.target.closest("[data-speed]"); if (b) { speed = Number(b.dataset.speed); dirty = true; } });
+document.addEventListener("keydown", (e) => {
+  if (!EP || !$("#setup").hidden || ["INPUT", "SELECT"].includes(document.activeElement.tagName)) return;
+  if (e.key === " ") { e.preventDefault(); togglePlay(); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+  else if (e.key === "Escape") { sel = null; drawer = null; dirty = true; }
+});
+// timeline scrubbing
+const tl = $("#tl");
+function scrub(e) { const r = tl.getBoundingClientRect(); playing = false; setTime((e.clientX - r.left) / r.width * EP.end_ms); }
+tl.addEventListener("pointerdown", (e) => {
+  if (!EP) return;
+  const tick = e.target.closest("[data-job]");
+  if (tick) { const j = jobById.get(Number(tick.dataset.job)); playing = false; setTime(j.failT); openJob(j.id); return; }
+  tl.setPointerCapture(e.pointerId); scrub(e);
+});
+tl.addEventListener("pointermove", (e) => { if (tl.hasPointerCapture(e.pointerId)) scrub(e); });
+
+function frame(ts) {
+  if (EP && playing && lastFrame !== null) {
+    setTime(t + speed * (ts - lastFrame) / 1000);
+    if (t >= EP.end_ms) playing = false;
+  }
+  lastFrame = ts;
+  if (EP && dirty) { render(); dirty = false; }
+  requestAnimationFrame(frame);
+}
+
+// ------------------------------------------------------------------ selection (pointerdown: the DOM is rebuilt every frame while playing)
+function openJob(id) { if (sel !== id) steps = new Set(); sel = id; drawer = "job"; playing = false; dirty = true; }
+document.addEventListener("pointerdown", (e) => {
+  if (!EP || e.target.closest("#tl")) return;
+  const j = e.target.closest("[data-job]"); if (j) { openJob(Number(j.dataset.job)); return; }
+  const s = e.target.closest("[data-seek]"); if (s) { playing = false; setCursor(Number(s.dataset.seek)); return; }
+  const a = e.target.closest("[data-act]"); if (!a) return;
+  if (a.dataset.act === "close") { sel = null; drawer = null; }
+  else if (a.dataset.act === "checks") { sel = null; drawer = drawer === "checks" ? null : "checks"; }
+  else if (a.dataset.act === "steps") { const id = Number(a.dataset.task); steps.has(id) ? steps.delete(id) : steps.add(id); }
+  dirty = true;
+});
+
+// ------------------------------------------------------------------ render
+function render() {
+  document.body.classList.toggle("has-sel", sel !== null);
+  renderHeader(); renderFlow(); renderTimeline(); renderDrawer();
+}
+
+function renderHeader() {
+  const p = EP.params;
+  $("#subtitle").textContent = `${p.switch_policy} / ${p.server_policy} · D = ${p.deadline_ms} ms · topology ${p.topology} · seed ${p.seed}`;
+  $("#tnow").textContent = `t = ${fmt(t)} ms`;
+  $("#tend").textContent = `of ${fmt(EP.end_ms, 1)} ms`;
+  $("#paused").hidden = playing;
+  const nDone = lower(doneSeqs, cur), nMet = lower(metSeqs, cur);
+  const ie = lower(energy.seq, cur), eDyn = ie > 0 ? energy.cum[ie - 1] : 0;
+  const eStat = periods.reduce((s, q) => s + q.w * Math.max(0, Math.min(t, q.t_off_ms) - q.t_on_ms), 0);
+  const kpi = (label, value, tip, style = "") => `<div class="kpi" title="${esc(tip)}"><span>${label}</span><span style="${style}">${value}</span></div>`;
+  $("#kpis").innerHTML =
+    kpi("In system", `${activeJobs().length} jobs`, "jobs arrived and not finished")
+    + kpi("On time", nDone ? `${fmt(100 * nMet / nDone, 1)} %` : "—", `${nMet} of ${nDone} finished jobs had every task met`,
+          nDone && nMet / nDone < 0.95 ? "color:var(--red-fg)" : "color:var(--green-fg)")
+    + kpi("Avg. time per job", nDone ? ms(durCum[nDone - 1] / nDone) : "—", "finished jobs: last task end − arrival (failed jobs end at D)")
+    + kpi("Avg. power", t > 0 ? `${fmt((eDyn + eStat) / t * 1e3, 1)} W` : "—",
+          `(dynamic ${fmt(eDyn, 4)} J + static ${fmt(eStat, 4)} J) / t; dynamic energy counted when each task ends`);
+  const nok = EP.checks.filter((c) => c.ok).length, all = nok === EP.checks.length;
+  $("#bChecks").textContent = `Checks ${nok}/${EP.checks.length} ${all ? "✓" : "✗"}`;
+  $("#bChecks").classList.toggle("bad", !all);
+  $("#bPlay").innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+  $("#bPlay").setAttribute("aria-label", playing ? "Pause" : "Play");
+  $("#speeds").innerHTML = `<span style="margin-right:4px">Speed</span>`
+    + SPEEDS.map((s) => `<button data-speed="${s}" class="${s === speed ? "on" : ""}" aria-pressed="${s === speed}">${s}×</button>`).join("")
+    + `<span style="margin-left:6px">1× = 1 ms simulated per second</span>`;
+  const last = cur > 0 ? ev[cur - 1] : null;
+  $("#evpos").textContent = `event ${cur}/${ev.length}${last ? " · " + last.type : ""}`;
+}
+
+function wBars(vec) {
+  if (!vec) return `<span class="note">null (preference-free)</span>`;
+  const m = Math.max(1e-12, ...vec.map(Math.abs));
+  return `<div class="wbars" title="w = [${vec.map((v) => fmt(v, 3)).join(", ")}]">${vec.map((v) => `<i style="height:${(Math.abs(v) / m * 100).toFixed(0)}%"></i>`).join("")}</div>`;
+}
+function serverDecisionText(d) {
+  const o = d.obs, a = d.action.executor, ex = o.executors[a];
+  const nAllowed = o.executors.filter((e) => e.allowed).length;
+  const where = ex.n_busy < ex.capacity && ex.n_queued === 0 ? "starts at once" : `${ordinal(ex.n_queued + 1)} in queue`;
+  return `${exName(d.obs.server, a)} (${where}${nAllowed === 1 ? ", only option" : ""})`;
+}
+function capped(list, max, render) {
+  const shown = list.slice(0, max).map(render).join("");
+  return list.length > max ? shown + `<span class="more">+${list.length - max}</span>` : shown;
+}
+
+function renderFlow() {
+  const S = clusterState(), K = EP.topology.length, slot = EP.meta.slot_ms ?? 0.5;
+  let h = `<div class="cap colhead" style="grid-column:1">Cells</div><div class="cap colhead" style="grid-column:3">Arrivals</div>`
+    + `<div class="cap colhead" style="grid-column:5">Switch</div><div class="cap colhead" style="grid-column:7; padding-left:56px">Servers</div>`;
+  // cells
+  h += `<div class="cells" style="grid-column:1">`;
+  for (let du = 0; du < EP.params.n_dus; du++) {
+    let n = 0;
+    for (let i = lower(jobArrT, t - slot + 1e-9), hi = upper(jobArrT, t); i < hi; i++) if (jobs[i].du === du && jobs[i].arrSeq < cur) n++;
+    h += `<div class="du" title="${n} job(s) from DU ${du} in the last slot">${ICON_CELL}<b>DU ${du}</b>${n ? `<span class="n">+${n}</span>` : ""}</div>`;
+  }
+  h += `<div class="note">New jobs every ${slot} ms</div></div>`;
+  h += `<div class="arrow" style="grid-column:2"><i></i><b></b></div>`;
+  // arrivals waiting for the switch policy
+  h += `<div class="arrivals" style="grid-column:3">${capped(S.arrivals, MAXARR, (j) => tok(j.id))}<div class="note" style="text-align:center">${S.arrivals.length} waiting</div></div>`;
+  h += `<div class="arrow" style="grid-column:4"><i></i><b></b></div>`;
+  // switch: its last decision and the message w
+  const di = lower(decSwitchSeqs, cur) - 1;
+  h += `<div class="switch" style="grid-column:5"><div class="h">${ICON_SWITCH}Upstream switch</div>`;
+  if (di >= 0) {
+    const e = ev[decSwitchSeqs[di]], d = EP.decisions[e.decision], now = e.t === t;
+    h += `<div class="row"><span class="note" style="font-size:12px">${now ? "Deciding" : "Last decision"}</span>${tok(e.job)}<b>→ S${e.server}</b></div>`
+      + `<div style="display:flex; flex-direction:column; gap:5px"><span class="note" style="font-size:12px">Message w sent with the job</span>${wBars(d.action.message)}</div>`;
+  } else h += `<div class="note">no decision yet</div>`;
+  h += `<div class="note">policy <b style="color:var(--ink)">${esc(EP.params.switch_policy)}</b></div></div>`;
+  h += `<div class="arrow" style="grid-column:6; padding-right:0"><i></i></div>`;
+  // servers
+  h += `<div class="servers" style="grid-column:7">`;
+  S.servers.forEach((srv, k) => {
+    const bus = K === 1 ? "top:39px;height:2px" : k === 0 ? "top:39px;bottom:0" : k === K - 1 ? "top:0;height:41px" : "top:0;bottom:0";
+    const real = realLoad(k, cur), ack = lastAck(k), at = ack ? ack.reported_at_ms : 0;
+    const seen = ack ? summaryLoad(ack.summary) : 0, since = sinceAck(k, at);
+    const behind = Math.abs(real - seen) >= 2;
+    const bar = (n) => (n ? `width:${Math.max(n / peakLoad * 100, 4).toFixed(1)}%` : "display:none");
+    const spec = EP.topology[k].map((e) => `${e.kind.toUpperCase()} ×${e.capacity}`).join(" · ") + (EP.topology[k].some((e) => e.kind === "gpu") ? "" : " · no GPU");
+    h += `<div class="srow"><div class="bus" style="${bus}"></div>`
+      + `<div class="stub"><i></i><b></b><div>${capped(srv.flight, 2, (j) => tok(j.id, null, " in flight"))}</div></div>`
+      + `<section class="card"><div class="h"><span class="name">S${k}</span><span class="spec">${spec}</span>`
+      + `<div class="belief" title="real = busy + queued now; switch sees = busy + queued in its last ACK (${ack ? "reported at " + ms(at) : "initial state"})">`
+      + `<div class="lbars"><div><i class="real" style="${bar(real)}"></i></div><div><i class="seen" style="${bar(seen)}"></i></div></div>`
+      + `<div class="btxt"><div><b>Load ${real}</b> <span class="muted">· switch sees ${seen}${since ? ` +${since} sent since` : ""}</span></div>`
+      + `<div class="${behind ? "behind" : "muted"}">${ack ? `ACK ${ms(t - at)} old` : "no ACK yet"}${behind ? " · switch is behind" : ""}</div></div></div></div>`;
+    if (srv.waiting.length) {
+      h += `<div class="waitrow"><span>Waiting for its C</span>${capped(srv.waiting, MAXQ, (q) => tok(q.job, q.id, " waiting"))}</div>`;
+    }
+    srv.execs.forEach((e, i) => {
+      const cap = EP.topology[k][i].capacity;
+      const before = exCounts(k, i, upper(evT, t - slot)).q, growing = e.queue.length > before && e.queue.length > 0;
+      const on = periods.some((p) => p.server === k && p.executor === i && p.t_on_ms <= t && t < p.t_off_ms);
+      const head = e.queue.slice(0, MAXQ).reverse();          // FIFO head next to the units
+      h += `<div class="exrow"><div class="queue" title="FIFO, head on the right">`
+        + (growing ? `<span class="warn lead">Queue growing</span>` : e.queue.length ? "" : `<span class="qempty lead">queue empty</span>`)
+        + (e.queue.length > MAXQ ? `<span class="more${growing ? "" : " lead"}">+${e.queue.length - MAXQ}</span>` : "")
+        + head.map((q) => tok(q.job, q.id, " queued")).join("") + `</div><div class="chev">›</div>`
+        + `<div class="units"><div class="info"><div class="kind">${exName(k, i)} <span>×${cap}</span><i class="pwr${on ? " on" : ""}" title="${on ? "powered on" : "off"}"></i></div>`
+        + `<div class="meter" title="${e.service.length} of ${cap} units busy">${Array.from({ length: cap }, (_, u) => `<i class="${u < e.service.length ? "b" : ""}"></i>`).join("")}</div></div>`
+        + `<div class="busy">${e.service.map((s) => {
+            const sig = EP.model_calls[s.id].recorded_service_time_ms, p = Math.min(1, Math.max(0, (t - s.t_start_ms) / sig));
+            const color = { ok: "var(--blue)", tight: "var(--amber)", late: "var(--red)" }[taskTone(s)] ?? "var(--blue)";
+            return `<div class="unit">${tok(s.job, s.id, `, in service, ${(p * 100).toFixed(0)} % done`)}<div class="prog"><i style="width:${(p * 100).toFixed(0)}%; background:${color}"></i></div></div>`;
+          }).join("")}</div></div></div>`;
+    });
+    const dj = lower(decServerSeqs[k], cur) - 1;
+    let last = "—";
+    if (dj >= 0) { const e = ev[decServerSeqs[k][dj]], d = EP.decisions[e.decision], q = tasks.get(e.task); last = `${q.job}·${LETTER[q.kind]} → ${serverDecisionText(d)}`; }
+    h += `<div class="lastdec">Last server decision: <b>${last}</b> <span class="muted">· policy ${esc(EP.params.server_policy)}</span></div></section></div>`;
+  });
+  h += `</div>`;
+  $("#flow").innerHTML = h;
+}
+
+function renderTimeline() {
+  const x = (t / EP.end_ms * 100).toFixed(3) + "%";
+  $("#barsPast").style.clipPath = `inset(0 calc(100% - ${x}) 0 0)`;
+  $("#trackFill").style.width = x; $("#trackThumb").style.left = x; $("#nowline").style.left = x;
+  if (renderTimeline.key !== `${cur}|${sel}`) {
+    renderTimeline.key = `${cur}|${sel}`;
+    $("#fails").innerHTML = jobs.filter((j) => j.failT !== null).map((j) =>
+      `<button class="tick${j.failT > t ? " fut" : ""}" data-job="${j.id}" style="left:${(j.failT / EP.end_ms * 100).toFixed(3)}%" title="job ${j.id} failed at ${ms(j.failT)}" aria-label="job ${j.id} failed"></button>`).join("");
+  }
+}
+
+// ------------------------------------------------------------------ drawer
+function renderDrawer() {
+  const box = $("#drawer");
+  let html = "";
+  if (drawer === "job" && sel !== null) html = jobDrawer(jobById.get(sel));
+  else if (drawer === "checks") html = checksDrawer();
+  box.hidden = !html;
+  if (html !== renderDrawer.prev) { const y = box.scrollTop; box.innerHTML = html; box.scrollTop = y; renderDrawer.prev = html; }
+}
+const closeBtn = `<button class="close" data-act="close" aria-label="Close details">${ICON_CLOSE}</button>`;
+
+function jobChip(j) {
+  const ph = jobPhase(j);
+  if (ph === "future") return ["Not arrived", "future"];
+  if (ph === "done") return j.met ? ["On time", "met"] : ["Late", "fail"];
+  const tone = jobTone(j);
+  return [{ late: "Will miss", tight: "Tight", ok: "In progress" }[tone] ?? "In progress", tone];
+}
+function whereNow(k) {
+  const s = status(k);
+  if (s === "queued") {
+    const q = clusterState().servers[k.server].execs[k.executor].queue.findIndex((x) => x.id === k.id);
+    return `S${k.server} · ${exName(k.server, k.executor)} queue · ${ordinal(q + 1)} in line`;
+  }
+  if (s === "service") {
+    const sig = EP.model_calls[k.id].recorded_service_time_ms;
+    return `S${k.server} · ${exName(k.server, k.executor)} · in service (${(100 * (t - k.t_start_ms) / sig).toFixed(0)} %)`;
+  }
+  if (["blocked", "ready", "flight"].includes(s)) return `S${k.server} · ${STATUS_TEXT[s]}`;
+  return STATUS_TEXT[s];
+}
+
+function gantt(j) {
+  const ks = j.tasks.map((id) => tasks.get(id));
+  const a0 = j.t_arrival_ms, a1 = Math.max(j.deadline, j.end) + 0.08 * D, span = a1 - a0;
+  const pct = (x) => ((x - a0) / span * 100).toFixed(2);
+  const seg = (from, to, cls) => (to > from ? `<div class="seg ${cls}" style="left:${pct(from)}%; width:${(Math.max(to - from, span * 0.004) / span * 100).toFixed(2)}%"></div>` : "");
+  const rows = ks.map((k) => {
+    const end = k.t_end_ms, dl = Math.min(k.t_deliver_ms ?? end, end);
+    let s = seg(k.t_arrival_ms, dl, "sw");
+    const rd = k.t_ready_ms ?? (k.t_deliver_ms !== null && k.t_deliver_ms < end ? end : null);
+    if (rd !== null) s += seg(dl, Math.min(rd, end), "wait");
+    if (k.t_ready_ms !== null) s += seg(k.t_ready_ms, k.t_start_ms ?? end, "queue");
+    if (k.t_start_ms !== null) s += seg(k.t_start_ms, end, "svc");
+    if (k.outcome !== "met") s += `<div class="seg cut" style="left:calc(${pct(end)}% - 2px)" title="${k.outcome} at ${ms(end)}"></div>`;
+    if (t < a1) s += `<div class="fade" style="left:${Math.max(0, pct(t))}%"></div>`;
+    return `<div class="grow"><span>${LETTER[k.kind]}</span><div>${s}</div></div>`;
+  }).join("");
+  const n = ks.length, gh = n * 30 + 4;
+  const line = (x, style) => (x >= a0 && x <= a1 ? `<div class="vline" style="left:calc(26px + (100% - 26px) * ${(x - a0) / span}); height:${gh}px; ${style}"></div>` : "");
+  const ticks = [0, 1 / 3, 2 / 3].map((f) => `<span style="left:${pct(a0 + f * D)}%">${fmt(a0 + f * D)}</span>`).join("")
+    + `<span style="left:${pct(j.deadline)}%; transform:translateX(-85%); color:var(--red-fg); font-weight:600">${fmt(j.deadline)} deadline</span>`;
+  return `<div style="display:flex; flex-direction:column; gap:6px"><div class="cap">Journey</div>`
+    + `<div class="gantt">${rows}${line(j.deadline, "border-left:2px solid var(--red)")}${line(t, "border-left:1.5px dashed var(--ink)")}<div class="gaxis">${ticks}</div></div>`
+    + `<div class="glegend"><span><i style="background:#C9CED6"></i>switch + downlink</span><span><i style="background:#E3E6EB; box-shadow:inset 0 0 0 1px #C9CED6"></i>waiting for C</span>`
+    + `<span><i style="background:#F2DCA6"></i>queued</span><span><i style="background:var(--blue)"></i>in service</span>`
+    + `<span><i style="background:repeating-linear-gradient(45deg,var(--red) 0 3px,#F6C5BB 3px 6px)"></i>aborted / dropped at D</span>`
+    + `<span><i style="width:0; height:11px; border-left:1.5px dashed var(--ink); border-radius:0"></i>now</span></div></div>`;
+}
+
+function switchSection(j) {
+  const k0 = tasks.get(j.tasks[0]);
+  if (k0.switch_decision === null) return "";
+  const d = EP.decisions[k0.switch_decision], o = d.obs;
+  const cs = decSwitchSeqs.find((s) => ev[s].decision === d.id);     // cursor at the decision: the state the policy saw
+  const rows = o.reports.map((r, k) => {
+    const saw = summaryLoad(r.summary), real = realLoad(k, cs), nj = Math.round(o.cluster.jobs_since_ack[k]);
+    return `<tr class="${k === d.action.server ? "chosen" : ""}"><td>S${k}${k === d.action.server ? " ←" : ""}</td><td>${saw}${nj ? ` +${nj}j` : ""}</td>`
+      + `<td class="${real !== saw ? "worse" : ""}">${real}</td><td>${ms(r.age_ms, 2)}</td></tr>`;
+  }).join("");
+  return `<div class="sec"><div class="sh"><b>Switch decision → S${d.action.server}</b><span>${ms(d.t)}</span></div>`
+    + `<div class="small">What it saw vs. what was really there (load = busy + queued; +nj = jobs sent since that ACK, c<sub>t</sub>)</div>`
+    + `<table><thead><tr><th>Server</th><th>Switch saw</th><th>Real</th><th>ACK age</th></tr></thead><tbody>${rows}</tbody></table>`
+    + `<div class="small">Offered load seen: ${fmt(o.cluster.arrival_rate_per_ms, 2)} jobs/ms · mean TBS ${fmt(o.cluster.mean_tbs, 0)} bits · slack ${ms(o.slack_ms)}</div>`
+    + `<div class="row"><span class="small">Message w</span>${wBars(d.action.message)}</div></div>`;
+}
+
+function serverSection(k) {
+  const L = LETTER[k.kind];
+  if (k.server_decision === null) {
+    const why = k.executor === null ? "never reached an executor" : k.kind === "cpu_processing"
+      ? `${L} always runs on the CPU (ADR-0011), no decision needed` : "executor fixed by rule, no policy decision";
+    return `<div class="sec"><div class="sh"><b>Server ${k.server === null ? "" : "S" + k.server + " "}· ${L}</b></div><div class="small">${why}.</div></div>`;
+  }
+  const d = EP.decisions[k.server_decision], o = d.obs;
+  const rows = o.executors.map((e, i) => `<tr class="${i === d.action.executor ? "chosen" : ""}"><td>${e.kind.toUpperCase()}${i === d.action.executor ? " ←" : ""}</td>`
+    + `<td>${e.n_busy}/${e.capacity}</td><td>${e.n_queued}</td><td>${fmt(e.elapsed_ms, 2)}</td><td>${e.queued_bits}</td><td>${e.allowed ? "yes" : "no"}</td></tr>`).join("");
+  return `<div class="sec"><div class="sh"><b>Server S${o.server} decision: ${L} → ${serverDecisionText(d)}</b><span>${ms(d.t)}</span></div>`
+    + `<div class="small">What the server saw (its own executors) · slack ${ms(o.slack_ms)} · message ${o.message ? "w received" : "null"}</div>`
+    + `<table><thead><tr><th>Executor</th><th>Busy</th><th>Queued</th><th>Elapsed</th><th>Queued bits</th><th>Allowed</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function serviceSection(ks) {
+  const calls = ks.map((k) => [k, EP.model_calls[k.id]]);
+  const head = calls.map(([k, m]) => `${LETTER[k.kind]} ${m ? ms(m.recorded_service_time_ms) : "—"}`).join(" · ");
+  const body = calls.map(([k, m]) => {
+    if (!m) return `<div class="small"><b>${LETTER[k.kind]}</b>: never reached an executor, no model call.</div>`;
+    const f = k.features;
+    const open = steps.has(k.id);
+    return `<div style="display:flex; flex-direction:column; gap:6px"><div class="small"><b style="color:var(--ink)">${LETTER[k.kind]}</b> · ${esc(m.model)} on ${exName(m.server, m.executor)} · ${f.nprb} PRB · MCS ${f.mcs} · ${f.n_cb} code block${f.n_cb === 1 ? "" : "s"} · E<sub>dyn</sub> ${fmt(m.recorded_dynamic_energy_j, 4)} J</div>`
+      + `<button class="btn" style="align-self:flex-start" data-act="steps" data-task="${k.id}">${open ? "Hide" : "Show"} calculation steps</button>`
+      + (open ? `<table class="steps"><tbody>${m.steps.map(([n, v]) => `<tr><td>${esc(n)}</td><td>${typeof v === "number" ? fmt(v, 5) : esc(v)}</td></tr>`).join("")}`
+        + `<tr><td><b>σ(e,i) [ms]</b></td><td><b>${fmt(m.service_time_ms, 5)}</b></td></tr></tbody></table>`
+        + `<div class="small">${m.match ? '<span class="ok-t">✓</span> re-run equals the draw the simulator used (keyed rng, ADR-0002)' : '<span class="bad-t">✗ re-run does NOT match the simulator</span>'}</div>` : "")
+      + `</div>`;
+  }).join("");
+  return `<div class="sec"><div class="sh"><b>Service time σ</b><span style="font-weight:600; color:var(--ink)">${head}</span></div>${body}</div>`;
+}
+
+function jobDrawer(j) {
+  const [chip, tone] = jobChip(j), ks = j.tasks.map((id) => tasks.get(id));
+  const slack = jobPhase(j) === "active" ? ms(j.deadline - t) : "—";
+  return `<div class="dhead"><div><div class="row"><span class="big">Job ${j.id}</span><span class="chip ${tone}">${chip}</span></div>`
+    + `<div class="small">from DU ${j.du} · arrived ${ms(j.t_arrival_ms)} · deadline ${ms(j.deadline)}${j.server !== null ? ` · → S${j.server}` : ""}</div></div>${closeBtn}</div>`
+    + ks.map((k) => `<div class="kv"><span class="muted">${LETTER[k.kind]} now</span><b>${whereNow(k)}</b></div>`).join("")
+    + `<div class="kv"><span class="muted">Slack to deadline</span><b class="mono">${slack}</b></div>`
+    + `<div class="row"><button class="btn" data-seek="${j.arrSeq + 1}">Go to arrival</button>${Number.isFinite(j.endSeq) ? `<button class="btn" data-seek="${j.endSeq + 1}">Go to end</button>` : ""}</div>`
+    + gantt(j) + switchSection(j) + ks.map(serverSection).join("") + serviceSection(ks);
+}
+
+function checksDrawer() {
+  const p = EP.params, kv = (o) => Object.entries(o).map(([a, b]) => `<div class="kv"><span class="muted">${esc(a)}</span><b class="mono">${esc(typeof b === "number" ? +b.toFixed(6) : b)}</b></div>`).join("");
+  return `<div class="dhead"><div><span class="big">Checks and episode</span><div class="small">Invariants of the mechanics, verified on the whole recorded episode.</div></div>${closeBtn}</div>`
+    + EP.checks.map((c) => `<div class="sec"><div><span class="${c.ok ? "ok-t" : "bad-t"}">${c.ok ? "✓" : "✗"}</span> ${esc(c.name)} <span class="small">${esc(c.detail)}</span></div>`
+      + (c.violations.length ? `<div class="small">tasks ${c.violations.join(", ")}</div>` : "") + `</div>`).join("")
+    + `<div class="sec"><div class="cap">Result</div>${kv({ jobs: jobs.length, tasks: tasks.size, events: ev.length, decisions: EP.decisions.length, ...EP.outcomes,
+        "jobs in the full stream": EP.full_stream_jobs, "end [ms]": EP.end_ms, "compute time [s]": EP.elapsed_s })}</div>`
+    + `<div class="sec"><div class="cap">Parameters</div>${kv(p)}</div>`
+    + `<div class="sec"><div class="cap">TaskStream meta</div>${kv(EP.meta)}</div>`;
+}
+
+loadOptions().catch((e) => { $("#setupErr").innerHTML = `<div class="err">Could not load /api/options: ${esc(e.message)}</div>`; });
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

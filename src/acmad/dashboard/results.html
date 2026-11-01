@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Experiment results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --page: #EEF0F3; --panel: #FFFFFF; --soft: #F7F8FA; --line: #DDE1E7; --line2: #E6E9EE;
+  --ink: #15181E; --muted: #556070; --faint: #8A93A1; --grid: #E6E9EE; --axis: #AEB5C0;
+  --blue-bg: #E8EFFC; --blue-fg: #1A4495;
+  --amber-bg: #FFF0D4; --amber-fg: #6E4300;
+  --red-bg: #FDE3DD; --red-fg: #97240F;
+  --green-bg: #E2F3EA; --green-fg: #145C3D;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --s-other: #8A93A1;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #111214; --panel: #1a1a19; --soft: #222321; --line: #34363a; --line2: #2b2d30;
+    --ink: #f0efec; --muted: #c3c2b7; --faint: #8d8c85; --grid: #2b2d30; --axis: #55575c;
+    --blue-bg: #1c2a40; --blue-fg: #9cc1f5; --amber-bg: #3a2c10; --amber-fg: #f2c46b;
+    --red-bg: #3d1d18; --red-fg: #f4a493; --green-bg: #15301f; --green-fg: #8fd8ae;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --s-other: #77766f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #111214; --panel: #1a1a19; --soft: #222321; --line: #34363a; --line2: #2b2d30;
+  --ink: #f0efec; --muted: #c3c2b7; --faint: #8d8c85; --grid: #2b2d30; --axis: #55575c;
+  --blue-bg: #1c2a40; --blue-fg: #9cc1f5; --amber-bg: #3a2c10; --amber-fg: #f2c46b;
+  --red-bg: #3d1d18; --red-fg: #f4a493; --green-bg: #15301f; --green-fg: #8fd8ae;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --s-other: #77766f;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.4 Inter, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+button, select, input { font: inherit; color: inherit; }
+a { color: var(--blue-fg); }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.cap { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.btn { height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--soft); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.dark { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+select, input[type=text] { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 12.5px; }
+
+#app { max-width: 1440px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 12px 18px; }
+header .title { flex: 1 1 280px; display: flex; flex-direction: column; gap: 2px; }
+header b { font-size: 16px; }
+.sec { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sec-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.sec-h h2 { margin: 0; font-size: 15px; margin-right: auto; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 1000px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* tables */
+.tw { overflow: auto; border: 1px solid var(--line2); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--soft); font-weight: 600; color: var(--muted); font-size: 11.5px; cursor: default; z-index: 1; }
+th.sort { cursor: pointer; }
+td.num, th.num { text-align: right; font-family: var(--mono); font-size: 12px; }
+tbody tr:last-child td { border-bottom: none; }
+.pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 5px; }
+.pill.done { background: var(--green-bg); color: var(--green-fg); }
+.pill.running { background: var(--blue-bg); color: var(--blue-fg); }
+.pill.incomplete { background: var(--amber-bg); color: var(--amber-fg); }
+.pill.failed { background: var(--red-bg); color: var(--red-fg); }
+.prog { display: inline-block; width: 60px; height: 5px; border-radius: 3px; background: var(--line); vertical-align: middle; margin-right: 6px; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--ink); }
+
+/* legend / series toggles */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.lg { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); font-size: 12px; cursor: pointer; }
+.lg i { width: 10px; height: 10px; border-radius: 50%; }
+
+/* charts */
+.charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 12px; }
+@media (max-width: 520px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.card { border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px 6px; min-width: 0; position: relative; }
+.card .ch { display: flex; align-items: center; gap: 8px; }
+.card .ch b { font-size: 13px; }
+.card .ch .x { margin-left: auto; border: none; background: none; color: var(--faint); cursor: pointer; font-size: 16px; line-height: 1; }
+.card .sub { font-size: 11.5px; color: var(--muted); }
+svg text { fill: var(--muted); font: 11px Inter, system-ui, sans-serif; }
+svg .gl { stroke: var(--grid); stroke-width: 1; }
+svg .ax { stroke: var(--axis); stroke-width: 1; }
+#tip { position: fixed; pointer-events: none; z-index: 10; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); display: none; max-width: 340px; }
+#tip .t { font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+#tip .t i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tab { border: none; background: none; padding: 8px 12px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.on { color: var(--ink); border-bottom-color: var(--ink); }
+pre { margin: 0; padding: 12px; background: var(--soft); border: 1px solid var(--line2); border-radius: 8px; font: 12px/1.45 var(--mono); overflow: auto; max-height: 560px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.empty { padding: 30px; text-align: center; color: var(--muted); }
+@media (max-width: 640px) { #app { padding: 10px 16px; } .sec { padding: 12px; } }
+/* methods grouped by run */
+#methods tr.grp td { background: var(--soft); border-top: 1px solid var(--line); padding-top: 8px; padding-bottom: 8px; }
+#methods tr.grp:first-child td { border-top: none; }
+#methods tr.mrow { cursor: pointer; }
+#methods tr.mrow:hover td { background: var(--soft); }
+#methods tr.mrow.sel td { background: var(--blue-bg); }
+#methods tr.mrow td:nth-child(2) { padding-left: 24px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; box-shadow: inset 0 0 0 1.5px var(--line); }
+.pol { color: var(--muted); font-size: 11.5px; }
+.linkbtn { border: none; background: none; padding: 0; color: var(--blue-fg); font-size: 12px; font-weight: 600; cursor: pointer; }
+.warnbox { background: var(--amber-bg); color: var(--amber-fg); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; }
+.lg .rm { color: var(--faint); margin-left: 2px; font-size: 14px; line-height: 1; }
+/* scenario selector and grid heatmaps */
+.scbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 18px; }
+.scbar b { font-size: 13px; }
+.grids { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+table.hm { width: auto; border-collapse: separate; border-spacing: 2px; }
+table.hm th { position: static; background: none; text-align: center; padding: 2px 6px; }
+table.hm th.rh { text-align: right; }
+table.hm td { padding: 6px 4px; min-width: 58px; text-align: center; border: none; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; cursor: pointer; }
+table.hm td.on { outline: 2px solid var(--ink); outline-offset: -1px; }
+table.hm td.na { background: var(--soft); color: var(--faint); cursor: default; }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
+label.chk { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="panel">
+    <div class="title"><b>Experiment results</b><div class="muted" style="font-size:12.5px" id="root"></div></div>
+    <label class="muted" style="font-size:12.5px"><input type="checkbox" id="auto" checked> auto-refresh while a run is going</label>
+    <button class="btn" id="refresh">Refresh</button>
+    <a class="btn" href="/" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Simulator →</a>
+  </header>
+
+  <section class="panel scbar">
+    <b>Scenario</b>
+    <span class="muted">n_dus</span><select id="scn"></select>
+    <span class="muted">s</span><select id="scs"></select>
+    <span class="muted" style="font-size:12px" id="schint"></span>
+  </section>
+
+  <div class="grid2">
+    <section class="panel sec">
+      <div class="sec-h">
+        <h2>Methods</h2>
+        <input type="text" id="filter" placeholder="filter (method, policy, experiment…)" style="width:230px">
+        <button class="btn" id="clear">Clear selection</button>
+      </div>
+      <div class="tw" style="max-height:440px"><table id="methods"></table></div>
+      <div class="muted" style="font-size:12px">Tick methods (from any run) to compare them below; the box on a run ticks all its methods. h and E/job: mean over seeds in the chosen scenario (mean over scenarios only when n_dus or s is "all").</div>
+    </section>
+    <section class="panel sec">
+      <div class="sec-h">
+        <h2>Overview</h2>
+        <select id="ovx"></select><span class="muted">vs</span><select id="ovy"></select>
+      </div>
+      <div class="muted" style="font-size:12px">One dot per (method, scenario) of the chosen scenario(s), mean over seeds; selected methods in colour. Click a dot to select or unselect its method.</div>
+      <div id="overview"></div>
+    </section>
+  </div>
+
+  <section class="panel sec" id="view" hidden></section>
+  <section class="panel sec" id="runinfo" hidden></section>
+</div>
+<div id="tip"></div>
+
+<script>
+const LABELS = {
+  job_hit_rate: "Job hit rate h", energy_per_job_mj: "Energy per job (mJ)", latency_ms_p99: "Latency p99 (ms)",
+  latency_ms_p50: "Latency p50 (ms)", latency_ms_p95: "Latency p95 (ms)", latency_ms_mean: "Latency mean (ms)",
+  ldpc_on_gpu_share: "LDPC share on GPU", power_mean_w: "Mean power (W)", rho: "Offered load ρ",
+  energy_total_j: "Energy total (J)", energy_dynamic_j: "Energy dynamic (J)", energy_static_j: "Energy static (J)",
+  task_met_rate: "Task met rate", task_missed_rate: "Task missed rate", task_dropped_rate: "Task dropped rate",
+  ldpc_wait_ms_p99: "LDPC wait p99 (ms)", ldpc_wait_ms_mean: "LDPC wait mean (ms)",
+};
+const label = m => LABELS[m] || m;
+const T975 = [NaN, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145,
+  2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042];
+const N_SLOTS = 8;
+/* config entries that do not change the traffic or the mechanics a method faces */
+const NOT_SETUP = /^(name|methods|scenarios|seeds|save_records|check_invariants)$/;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function fmt(v, ref) {
+  if (v === null || v === undefined || Number.isNaN(v)) return "–";
+  const a = Math.abs(ref ?? v);
+  const d = a === 0 ? 3 : a >= 100 ? 1 : a >= 10 ? 2 : a >= 1 ? 3 : Math.min(6, 2 - Math.floor(Math.log10(a)) + 1);
+  return Number(v).toFixed(d);
+}
+const fmtH = v => v === null || v === undefined || Number.isNaN(v) ? "–" : Number(v).toFixed(4);
+const pm = (m, c) => fmt(m) + (c === null || c === undefined ? "" : " ± " + fmt(c, m));
+const mean = xs => { xs = xs.filter(x => x !== null && x !== undefined); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; };
+
+function meanCi(xs) {
+  xs = xs.filter(x => x !== null && x !== undefined && !Number.isNaN(x));
+  const n = xs.length;
+  if (!n) return { mean: null, ci: null, n: 0 };
+  const m = xs.reduce((a, b) => a + b, 0) / n;
+  if (n < 2) return { mean: m, ci: null, n };
+  const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (n - 1));
+  return { mean: m, ci: (T975[n - 1] ?? 1.96) * sd / Math.sqrt(n), n };
+}
+
+/* ---------- state ----------
+   A method is identified by key = "<run id>|<method name>"; runs only group methods. */
+const S = {
+  runs: [], details: {}, sel: [], slot: new Map(), info: null, infoTab: "config", tab: "charts",
+  charts: null, xmode: "scenario", baseline: null, tableMetric: "job_hit_rate", cellSort: null,
+  ovx: "energy_per_job_mj", ovy: "job_hit_rate", nd: null, ss: null, gridMetric: "job_hit_rate",
+  dec: { key: null, seed: null, x: "tbs", y: "snr_db", logx: true, logy: false }, decCache: {},
+};
+try { const p = JSON.parse(localStorage.getItem("acmad-results") || "{}"); for (const k of ["charts", "xmode", "ovx", "ovy", "tab", "nd", "ss", "gridMetric", "dec"]) if (p[k] !== undefined && p[k] !== null) S[k] = p[k]; } catch (e) {}
+function save() {
+  try { localStorage.setItem("acmad-results", JSON.stringify({ charts: S.charts, xmode: S.xmode, ovx: S.ovx, ovy: S.ovy, tab: S.tab, nd: S.nd, ss: S.ss, gridMetric: S.gridMetric, dec: S.dec })); } catch (e) {}
+}
+/* the chosen scenario: n_dus and s, each a value or "all" (then the views average over it) */
+const matches = o => (S.nd === "all" || +o.n_dus === +S.nd) && (S.ss === "all" || +o.s === +S.ss);
+const scLabel = () => S.nd === "all" && S.ss === "all" ? "all scenarios (mean)"
+  : `${S.nd === "all" ? "every n_dus" : "n_dus " + S.nd} · ${S.ss === "all" ? "every s" : "s " + S.ss}`;
+const keyOf = (runId, m) => runId + "|" + m;
+const splitKey = k => { const i = k.lastIndexOf("|"); return [k.slice(0, i), k.slice(i + 1)]; };
+const runById = id => S.runs.find(r => r.id === id);
+
+/* colour follows the selected method (a slot taken on selection, kept until unselected), never its rank */
+function colour(key) {
+  const i = S.slot.get(key);
+  return i === undefined ? "var(--s-other)" : i < N_SLOTS ? `var(--s${i + 1})` : "var(--s-other)";
+}
+function select(key, on) {
+  const has = S.sel.includes(key);
+  if (on === undefined) on = !has;
+  if (on && !has) {
+    const used = new Set(S.slot.values());
+    let i = 0; while (used.has(i)) i++;
+    S.slot.set(key, i); S.sel.push(key);
+  } else if (!on && has) {
+    S.sel = S.sel.filter(k => k !== key); S.slot.delete(key);
+    if (S.baseline === key) S.baseline = null;
+  }
+}
+/* label: the method name, plus its run when two selected methods share a name */
+function seriesLabel(key) {
+  const [runId, m] = splitKey(key), r = runById(runId);
+  const clash = S.sel.some(k => k !== key && splitKey(k)[1] === m);
+  return clash && r ? `${m} (${r.experiment} ${r.started})` : m;
+}
+
+/* ---------- tooltip ---------- */
+const tip = $("#tip");
+function showTip(ev, html) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const r = tip.getBoundingClientRect();
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+/* ---------- scales ---------- */
+function niceTicks(lo, hi, n = 5) {
+  if (lo === hi) { const p = Math.abs(lo) * 0.05 || 1; lo -= p; hi += p; }
+  const step0 = (hi - lo) / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => s >= step0);
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, t = [];
+  for (let v = a; v <= b + step / 2; v += step) t.push(+v.toFixed(12));
+  return t;
+}
+const tickFmt = ts => { const st = ts.length > 1 ? Math.abs(ts[1] - ts[0]) : 1, d = Math.max(0, -Math.floor(Math.log10(st) + 1e-9)); return v => v.toFixed(d); };
+const leftMargin = (labels, extra) => Math.max(40, Math.max(...labels.map(l => l.length)) * 6.6 + 12 + extra);
+const lin = (d0, d1, r0, r1) => v => r0 + (v - d0) / (d1 - d0 || 1) * (r1 - r0);
+const svgEl = (w, h, inner) => `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img">${inner}</svg>`;
+
+/* Dot + 95 % CI chart. series: [{key, label, colour, pts: [{x (scenario id), rho, mean, ci, n}]}];
+   xs: scenarios in order (with their rho); mode "scenario" (bands) or "rho" (numeric axis, lines). */
+function dotChart(el, metric, series, xs, mode) {
+  const pts = series.flatMap(s => s.pts.filter(p => p.mean !== null));
+  if (!pts.length) { el.innerHTML = `<div class="empty">no data</div>`; return; }
+  const lo = Math.min(...pts.map(p => p.mean - (p.ci || 0))), hi = Math.max(...pts.map(p => p.mean + (p.ci || 0)));
+  const yt = niceTicks(lo, hi), yf = tickFmt(yt);
+  const W = Math.max(280, el.clientWidth), H = 230, m = { l: leftMargin(yt.map(yf), 0), r: 12, t: 10, b: mode === "rho" ? 34 : 40 };
+  const y = lin(yt[0], yt.at(-1), H - m.b, m.t);
+  let g = "";
+  for (const t of yt) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${yf(t)}</text>`;
+  let xOf;
+  if (mode === "rho") {
+    const rs = pts.map(p => p.rho).filter(r => r !== null);
+    const xt = niceTicks(Math.min(...rs), Math.max(...rs), 5), x = lin(xt[0], xt.at(-1), m.l + 10, W - m.r - 10);
+    for (const t of xt) g += `<text x="${x(t)}" y="${H - m.b + 16}" text-anchor="middle">${tickFmt(xt)(t)}</text>`;
+    g += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">offered load ρ</text>`;
+    xOf = p => x(p.rho);
+  } else {
+    const bw = (W - m.l - m.r) / xs.length, ns = series.length;
+    xs.forEach((s, i) => {
+      const cx = m.l + bw * (i + .5);
+      g += `<text x="${cx}" y="${H - m.b + 15}" text-anchor="middle">${esc(s.id)}</text>`;
+      if (s.rho !== null) g += `<text x="${cx}" y="${H - m.b + 29}" text-anchor="middle" style="fill:var(--faint)">ρ ${s.rho.toPrecision(3)}</text>`;
+    });
+    const idx = new Map(xs.map((s, i) => [s.id, i]));
+    const off = Math.min(14, bw * .7 / Math.max(1, ns));
+    xOf = (p, si) => m.l + bw * (idx.get(p.x) + .5) + (si - (ns - 1) / 2) * off;
+  }
+  g += `<line class="ax" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
+  let marks = "", hits = "";
+  series.forEach((s, si) => {
+    const ps = s.pts.filter(p => p.mean !== null);
+    if (mode === "rho" && ps.length > 1) {
+      const sorted = [...ps].sort((a, b) => a.rho - b.rho);
+      marks += `<polyline fill="none" stroke="${s.colour}" stroke-width="2" points="${sorted.map(p => `${xOf(p, si)},${y(p.mean)}`).join(" ")}"/>`;
+    }
+    for (const p of ps) {
+      const cx = xOf(p, si), cy = y(p.mean);
+      if (p.ci) marks += `<line x1="${cx}" x2="${cx}" y1="${y(p.mean - p.ci)}" y2="${y(p.mean + p.ci)}" stroke="${s.colour}" stroke-width="2" stroke-linecap="round"/>`;
+      marks += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${s.colour}" stroke="var(--panel)" stroke-width="2"/>`;
+      hits += `<circle cx="${cx}" cy="${cy}" r="11" fill="transparent" data-s="${si}" data-x="${esc(p.x)}"/>`;
+    }
+  });
+  el.innerHTML = svgEl(W, H, g + marks + hits);
+  el.querySelectorAll("circle[data-s]").forEach(c => {
+    const s = series[+c.dataset.s], p = s.pts.find(q => q.x === c.dataset.x);
+    c.addEventListener("mousemove", ev => showTip(ev, `<div class="t"><i style="background:${s.colour}"></i>${esc(s.label)}</div>
+      <div class="muted">${esc(p.x)} · ρ ${fmt(p.rho)} · ${p.n} seed${p.n === 1 ? "" : "s"}</div>
+      <div>${esc(label(metric))}: <b class="mono">${pm(p.mean, p.ci)}</b></div>`));
+    c.addEventListener("mouseleave", hideTip);
+  });
+}
+
+/* Overview scatter: one dot per (method, scenario); unselected methods recede. */
+function scatter(el, pts, xm, ym) {
+  pts = pts.filter(p => p[xm] !== null && p[ym] !== null && p[xm] !== undefined && p[ym] !== undefined);
+  if (!pts.length) { el.innerHTML = `<div class="empty">no finished cells yet</div>`; return; }
+  const xt = niceTicks(Math.min(...pts.map(p => p[xm])), Math.max(...pts.map(p => p[xm])));
+  const yt = niceTicks(Math.min(...pts.map(p => p[ym])), Math.max(...pts.map(p => p[ym])));
+  const xf = tickFmt(xt), yf = tickFmt(yt);
+  const W = Math.max(280, el.clientWidth), H = 300, m = { l: leftMargin(yt.map(yf), 18), r: 18, t: 10, b: 38 };
+  const x = lin(xt[0], xt.at(-1), m.l + 8, W - m.r), y = lin(yt[0], yt.at(-1), H - m.b, m.t);
+  let g = "";
+  for (const t of yt) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${yf(t)}</text>`;
+  for (const t of xt) g += `<text x="${x(t)}" y="${H - m.b + 16}" text-anchor="middle">${xf(t)}</text>`;
+  g += `<line class="ax" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
+  g += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${esc(label(xm))}</text>`;
+  g += `<text transform="translate(12 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${esc(label(ym))}</text>`;
+  const order = [...pts.keys()].sort((a, b) => S.sel.includes(pts[a].key) - S.sel.includes(pts[b].key));   // selected on top
+  for (const i of order) {
+    const p = pts[i], on = S.sel.includes(p.key);
+    g += `<circle cx="${x(p[xm])}" cy="${y(p[ym])}" r="${on ? 4.5 : 3.5}" fill="${on ? colour(p.key) : "var(--s-other)"}" ${on ? "" : 'fill-opacity=".35"'} stroke="var(--panel)" stroke-width="${on ? 2 : 1}"/>`;
+  }
+  for (const i of order) g += `<circle cx="${x(pts[i][xm])}" cy="${y(pts[i][ym])}" r="10" fill="transparent" data-i="${i}" style="cursor:pointer"/>`;
+  el.innerHTML = svgEl(W, H, g);
+  el.querySelectorAll("circle[data-i]").forEach(c => {
+    const p = pts[+c.dataset.i], on = S.sel.includes(p.key);
+    c.addEventListener("mousemove", ev => showTip(ev, `<div class="t"><i style="background:${on ? colour(p.key) : "var(--s-other)"}"></i>${esc(p.method)}</div>
+      <div class="muted">${esc(p.run.experiment)} ${esc(p.run.started)} · ${esc(p.scenario)} · ρ ${fmt(p.rho)} · ${p.n_seeds} seeds</div>
+      <div>${esc(label(xm))}: <b class="mono">${fmt(p[xm])}</b></div><div>${esc(label(ym))}: <b class="mono">${fmt(p[ym])}</b></div>
+      <div class="muted" style="margin-top:3px">click to ${on ? "unselect" : "select"}</div>`));
+    c.addEventListener("mouseleave", hideTip);
+    c.addEventListener("click", () => { hideTip(); select(p.key); changed(); });
+  });
+}
+
+/* ---------- methods list (grouped by run) + overview ---------- */
+async function loadRuns() {
+  const r = await (await fetch("/api/results")).json();
+  S.runs = r.runs;
+  const nm = r.runs.reduce((a, x) => a + x.methods.length, 0);
+  $("#root").textContent = `${nm} methods in ${r.runs.length} run${r.runs.length === 1 ? "" : "s"} · ${r.root}`;
+  const opts = r.headline.map(m => `<option value="${m}">${esc(label(m))}</option>`).join("") + `<option value="rho">${label("rho")}</option>`;
+  $("#ovx").innerHTML = opts; $("#ovy").innerHTML = opts;
+  $("#ovx").value = S.ovx; $("#ovy").value = S.ovy;
+  for (const k of [...S.sel]) if (!runById(splitKey(k)[0])) select(k, false);
+  for (const id of Object.keys(S.details)) if (["running", "incomplete"].includes(runById(id)?.status)) delete S.details[id];
+}
+
+function renderMethods() {
+  const q = $("#filter").value.trim().toLowerCase();
+  let html = `<thead><tr><th></th><th>method</th><th>policies (switch · server)</th><th class="num">h</th><th class="num">E/job mJ</th><th class="num">scen.</th></tr></thead><tbody>`;
+  let any = false;
+  for (const r of S.runs) {
+    const rows = r.methods.filter(m => !q || [m, r.policies[m]?.switch, r.policies[m]?.server, r.experiment, r.run, r.git].join(" ").toLowerCase().includes(q));
+    if (!rows.length) continue;
+    any = true;
+    const keys = r.methods.map(m => keyOf(r.id, m)), nsel = keys.filter(k => S.sel.includes(k)).length;
+    html += `<tr class="grp" data-run="${esc(r.id)}"><td><input type="checkbox" class="all" ${nsel === keys.length ? "checked" : ""} ${nsel && nsel < keys.length ? "data-mixed" : ""} aria-label="select every method of this run"></td>
+      <td colspan="5"><b>${esc(r.experiment)}</b> <span class="muted">${esc(r.started)}</span> <span class="pill ${r.status}">${r.status}</span>
+      <span class="muted mono" style="font-size:11.5px;margin-left:6px">${r.n_done}/${r.n_cells} cells · ${r.scenarios.length} scen. · ${r.seeds.length} seeds · git ${esc(r.git.slice(0, 7))}</span>
+      <button class="linkbtn info" style="margin-left:8px">run info</button></td></tr>`;
+    for (const m of rows) {
+      const k = keyOf(r.id, m), on = S.sel.includes(k), hl = r.headline.filter(h => h.method === m && matches(h)), p = r.policies[m] || {};
+      html += `<tr class="mrow ${on ? "sel" : ""}" data-k="${esc(k)}"><td><input type="checkbox" ${on ? "checked" : ""} aria-label="select ${esc(m)}"></td>
+        <td><span class="dot" style="background:${on ? colour(k) : "transparent"}"></span><b>${esc(m)}</b></td>
+        <td class="pol">${esc(p.switch)} · ${esc(p.server)}</td>
+        <td class="num">${fmtH(mean(hl.map(h => h.job_hit_rate)))}</td><td class="num">${fmt(mean(hl.map(h => h.energy_per_job_mj)))}</td>
+        <td class="num">${hl.length}/${r.scenarios.filter(matches).length}</td></tr>`;
+    }
+  }
+  if (!any) html += `<tr><td colspan="6" class="empty">${q ? "No methods match" : "No runs yet: run <span class='mono'>scripts/run.py configs/experiment/smoke.yaml</span>"}</td></tr>`;
+  $("#methods").innerHTML = html + "</tbody>";
+  $("#methods").querySelectorAll("input[data-mixed]").forEach(cb => cb.indeterminate = true);
+  $("#methods").querySelectorAll("tr.mrow").forEach(tr => tr.addEventListener("click", () => { select(tr.dataset.k); changed(); }));
+  $("#methods").querySelectorAll("tr.grp").forEach(tr => {
+    const r = runById(tr.dataset.run);
+    tr.querySelector(".all").addEventListener("click", ev => { r.methods.forEach(m => select(keyOf(r.id, m), ev.target.checked)); changed(); });
+    tr.querySelector(".info").addEventListener("click", () => openInfo(r.id));
+  });
+}
+
+function renderOverview() {
+  const pts = S.runs.flatMap(run => run.headline.filter(matches).map(h => ({ ...h, run, key: keyOf(run.id, h.method) })));
+  scatter($("#overview"), pts, S.ovx, S.ovy);
+}
+
+/* ---------- comparison of the selected methods ---------- */
+async function ensureDetails(ids) {
+  await Promise.all(ids.filter(id => !S.details[id]).map(async id => {
+    S.details[id] = await (await fetch("/api/results/" + id.split("/").map(encodeURIComponent).join("/"))).json();
+  }));
+}
+
+function flatten(o, p = "", out = {}) {
+  if (o && typeof o === "object" && !Array.isArray(o)) { for (const [k, v] of Object.entries(o)) flatten(v, p ? `${p}.${k}` : k, out); }
+  else out[p] = JSON.stringify(o);
+  return out;
+}
+
+async function renderView() {
+  const view = $("#view");
+  if (!S.sel.length) { view.hidden = true; return; }
+  const ids = [...new Set(S.sel.map(k => splitKey(k)[0]))];
+  await ensureDetails(ids);
+  const runs = ids.map(id => S.details[id]);
+  if (runs.some(r => !r || r.error)) { view.hidden = false; view.innerHTML = `<div class="empty">could not load a run</div>`; return; }
+  const listed = S.runs.flatMap(r => r.methods.map(m => keyOf(r.id, m)));          // series in list order
+  const series = [...S.sel].sort((a, b) => listed.indexOf(a) - listed.indexOf(b)).map(k => {
+    const [id, m] = splitKey(k);
+    return { key: k, method: m, run: S.details[id], label: seriesLabel(k), colour: colour(k) };
+  });
+  const metrics = [...new Set(runs.flatMap(r => r.metrics))];
+  if (!S.charts) S.charts = ["job_hit_rate", "energy_per_job_mj", "latency_ms_p99", "ldpc_on_gpu_share"];
+  if (!metrics.includes(S.tableMetric)) S.tableMetric = metrics[0];
+  if (!["grid", "charts", "table", "cells", "decisions"].includes(S.tab)) S.tab = "grid";
+
+  // methods from several runs: are they on the same footing (same traffic, topology, simulator)?
+  let warn = "";
+  if (runs.length > 1) {
+    const flats = runs.map(r => flatten(r.config_dict));
+    const keys = [...new Set(flats.flatMap(Object.keys))].filter(k => !NOT_SETUP.test(k.split(".")[0]));
+    const diff = keys.filter(k => new Set(flats.map(f => f[k])).size > 1);
+    const seeds = new Set(runs.map(r => JSON.stringify(r.seeds))).size > 1;
+    if (diff.length || seeds)
+      warn = `<div class="warnbox">These methods come from runs set up differently${seeds ? " (different seeds)" : ""}${diff.length ? `: ${diff.slice(0, 6).map(esc).join(", ")}${diff.length > 6 ? ` and ${diff.length - 6} more` : ""}` : ""}. Same scenario names may not mean the same traffic, and paired differences across those runs are not meaningful.</div>`;
+  }
+  const allXs = scenariosOf(series), xs = allXs.filter(matches);
+  view.hidden = false;
+  view.innerHTML = `<div class="sec-h"><h2>Comparing ${series.length} method${series.length === 1 ? "" : "s"}</h2><span class="muted" style="font-size:12px">from ${runs.map(r => `${esc(r.experiment)} ${esc(r.started)}`).join(", ")}</span></div>
+    ${warn}
+    <div class="legend">${series.map(s => `<span class="lg" data-k="${esc(s.key)}" title="remove from the comparison"><i style="background:${s.colour}"></i>${esc(s.label)}<span class="rm">×</span></span>`).join("")}</div>
+    <div class="tabs">${["grid", "charts", "table", "cells", "decisions"].map(t => `<button class="tab ${t === S.tab ? "on" : ""}" data-t="${t}">${t}</button>`).join("")}</div><div id="tabbody"></div>`;
+  view.querySelectorAll(".lg[data-k]").forEach(e => e.onclick = () => { select(e.dataset.k, false); changed(); });
+  view.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.tab = b.dataset.t; save(); renderView(); });
+  ({ grid: tabGrid, charts: tabCharts, table: tabTable, cells: tabCells, decisions: tabDecisions })[S.tab]($("#tabbody"), { metrics, series, xs, allXs, multiRun: runs.length > 1 });
+}
+
+function scenariosOf(series) {
+  const map = new Map();
+  for (const s of series) for (const a of s.run.aggregate.filter(a => a.method === s.method)) {
+    const e = map.get(a.scenario) || { id: a.scenario, n_dus: a.n_dus, s: a.s, rhos: [] };
+    e.rhos.push(a.rho); map.set(a.scenario, e);
+  }
+  return [...map.values()].map(e => ({ ...e, rho: mean(e.rhos) }))
+    .sort((a, b) => a.n_dus - b.n_dus || a.s - b.s || a.id.localeCompare(b.id));
+}
+
+function points(s, metric) {
+  return s.run.aggregate.filter(a => a.method === s.method && matches(a))
+    .map(a => ({ x: a.scenario, rho: a.rho, mean: a[metric], ci: a[metric + "_ci95"], n: a.n_seeds }));
+}
+
+/* n_dus (rows) x s (columns) heatmap per method: mean over seeds in every scenario, one shared colour
+   scale (one hue, light = low, dark = high); click a cell to choose that scenario above. */
+const RAMP = [[205, 226, 251], [134, 182, 239], [57, 135, 229], [28, 92, 171], [13, 54, 107]];
+function rampColour(t) {
+  t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+  const i = Math.min(RAMP.length - 2, Math.floor(t)), f = t - i, a = RAMP[i], b = RAMP[i + 1];
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
+}
+function tabGrid(body, { metrics, series, allXs }) {
+  const m = metrics.includes(S.gridMetric) ? S.gridMetric : metrics[0];
+  const nds = [...new Set(allXs.map(x => x.n_dus))].sort((a, b) => a - b), ss = [...new Set(allXs.map(x => x.s))].sort((a, b) => a - b);
+  const agg = (s, nd, sv) => s.run.aggregate.find(a => a.method === s.method && +a.n_dus === nd && +a.s === sv);
+  const vals = series.flatMap(s => nds.flatMap(nd => ss.map(sv => agg(s, nd, sv)?.[m]))).filter(v => v !== null && v !== undefined);
+  const lo = Math.min(...vals), hi = Math.max(...vals), f = m === "job_hit_rate" || /_rate$|_share$/.test(m) ? fmtH : v => fmt(v);
+  const quick = ["job_hit_rate", "energy_per_job_mj"].filter(x => metrics.includes(x));
+  body.innerHTML = `<div class="sec-h" style="margin-top:4px"><span class="muted">metric</span>
+      ${quick.map(x => `<button class="btn ${x === m ? "dark" : ""}" data-q="${x}">${esc(label(x))}</button>`).join("")}
+      <select id="gm">${metrics.map(x => `<option value="${x}">${esc(label(x))}</option>`).join("")}</select>
+      <span class="muted" style="font-size:12px;margin-left:auto">Mean over seeds per scenario; same colour scale for every method (${f(lo)} – ${f(hi)}). Click a cell to choose that scenario.</span></div>
+    <div class="grids">${series.map((s, si) => `<div class="card"><div class="ch"><b><span style="color:${s.colour}">●</span> ${esc(s.label)}</b></div>
+      <table class="hm"><thead><tr><th class="rh muted">n_dus \\ s</th>${ss.map(v => `<th>${v}</th>`).join("")}</tr></thead><tbody>
+      ${nds.map(nd => `<tr><th class="rh">${nd}</th>${ss.map(sv => {
+        const a = agg(s, nd, sv), v = a?.[m];
+        if (v === null || v === undefined) return `<td class="na">–</td>`;
+        const tt = hi > lo ? (v - lo) / (hi - lo) : 0.5, on = +S.nd === nd && +S.ss === sv;
+        return `<td class="${on ? "on" : ""}" style="background:${rampColour(tt)};color:${tt > 0.55 ? "#fff" : "#15181E"}" data-si="${si}" data-nd="${nd}" data-s="${sv}">${f(v)}</td>`;
+      }).join("")}</tr>`).join("")}</tbody></table></div>`).join("")}</div>`;
+  body.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { S.gridMetric = b.dataset.q; save(); renderView(); });
+  $("#gm").value = m; $("#gm").onchange = e => { S.gridMetric = e.target.value; save(); renderView(); };
+  body.querySelectorAll("td[data-si]").forEach(td => {
+    const s = series[+td.dataset.si], nd = +td.dataset.nd, sv = +td.dataset.s, a = agg(s, nd, sv);
+    td.addEventListener("mousemove", ev => showTip(ev, `<div class="t"><i style="background:${s.colour}"></i>${esc(s.label)}</div>
+      <div class="muted">n_dus ${nd} · s ${sv} · ρ ${fmt(a.rho)} · ${a.n_seeds} seeds</div>
+      <div>${esc(label(m))}: <b class="mono">${pm(a[m], a[m + "_ci95"])}</b></div>
+      <div>${esc(label("job_hit_rate"))}: <b class="mono">${fmtH(a.job_hit_rate)}</b> · E/job <b class="mono">${fmt(a.energy_per_job_mj)}</b> mJ</div>`));
+    td.addEventListener("mouseleave", hideTip);
+    td.addEventListener("click", () => { hideTip(); S.nd = nd; S.ss = sv; save(); renderScenarioBar(); changed(); });
+  });
+}
+
+/* ---------- decisions of one cell: switch (jobs by server) and each deciding server (tasks by executor) ---------- */
+const AXIS_LABEL = { tbs: "TBS (bits)", snr_db: "SNR (dB)", nprb: "nPRB", mcs: "MCS", total_bits: "LDPC input bits", n_cb: "code blocks",
+  cb_len: "code-block length", base_graph: "base graph", qm: "modulation order", code_rate: "code rate",
+  t_arrival_ms: "arrival time (ms)", latency_ms: "latency (ms)", wait_ms: "wait before service (ms)" };
+const axLabel = a => AXIS_LABEL[a] || a;
+const SERVER_C = ["var(--s3)", "var(--s5)", "var(--s7)", "var(--s4)", "var(--s6)", "var(--s8)"];
+/* executors by label: cpu blue, the GPUs orange, magenta, purple, ... (gpu = gpu1) */
+const GPU_C = ["var(--s2)", "var(--s5)", "var(--s7)", "var(--s8)"];
+const execColour = lab => lab === "cpu" ? "var(--s1)" : GPU_C[(Math.max(1, +lab.replace(/\D/g, "") || 1) - 1) % GPU_C.length];
+
+function decScatter(el, cols, xa, ya, cat, colourOf, labelOf, logx, logy) {
+  const n = cols[xa].length, pts = [];
+  for (let i = 0; i < n; i++) {
+    const x = cols[xa][i], y = cols[ya][i];
+    if (x === null || y === null || (logx && x <= 0) || (logy && y <= 0)) continue;
+    pts.push({ x: logx ? Math.log10(x) : x, y: logy ? Math.log10(y) : y, c: cols[cat][i], i });
+  }
+  if (!pts.length) { el.innerHTML = `<div class="empty">no points</div>`; return; }
+  const xt = niceTicks(Math.min(...pts.map(p => p.x)), Math.max(...pts.map(p => p.x)));
+  const yt = niceTicks(Math.min(...pts.map(p => p.y)), Math.max(...pts.map(p => p.y)));
+  const fx = logx ? v => fmt(10 ** v) : tickFmt(xt), fy = logy ? v => fmt(10 ** v) : tickFmt(yt);
+  const W = Math.max(300, el.clientWidth), H = 300, m = { l: leftMargin(yt.map(fy), 18), r: 12, t: 8, b: 38 };
+  const X = lin(xt[0], xt.at(-1), m.l + 6, W - m.r), Y = lin(yt[0], yt.at(-1), H - m.b, m.t);
+  let g = "";
+  for (const v of yt) g += `<line class="gl" x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${fy(v)}</text>`;
+  for (const v of xt) g += `<text x="${X(v)}" y="${H - m.b + 16}" text-anchor="middle">${fx(v)}</text>`;
+  g += `<line class="ax" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
+  g += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${esc(axLabel(xa))}${logx ? " (log)" : ""}</text>`;
+  g += `<text transform="translate(12 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${esc(axLabel(ya))}${logy ? " (log)" : ""}</text>`;
+  for (const p of pts) g += `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="2.6" fill="${colourOf(p.c)}" fill-opacity=".45"/>`;
+  el.innerHTML = svgEl(W, H, g);
+  const svg = el.querySelector("svg");
+  svg.addEventListener("mousemove", ev => {
+    const r = svg.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+    let best = null, bd = 64;
+    for (const p of pts) { const d = (X(p.x) - mx) ** 2 + (Y(p.y) - my) ** 2; if (d < bd) { bd = d; best = p; } }
+    if (!best) return hideTip();
+    showTip(ev, `<div class="t"><i style="background:${colourOf(best.c)}"></i>${esc(labelOf(best.c))}</div>
+      <div>${esc(axLabel(xa))}: <b class="mono">${fmt(cols[xa][best.i])}</b> · ${esc(axLabel(ya))}: <b class="mono">${fmt(cols[ya][best.i])}</b></div>
+      <div class="muted">outcome ${esc(cols.outcome?.[best.i] ?? cols.job_outcome?.[best.i] ?? "")}</div>`);
+  });
+  svg.addEventListener("mouseleave", hideTip);
+}
+
+async function tabDecisions(body, { series }) {
+  const D = S.dec;
+  if (!series.some(s => s.key === D.key)) D.key = series[0].key;
+  const s = series.find(x => x.key === D.key), run = s.run;
+  if (D.seed === null || D.seed === undefined || !run.seeds.map(Number).includes(Number(D.seed))) D.seed = run.seeds[0];
+  const sc = run.scenarios.find(c => matches(c));
+  const scId = sc && S.nd !== "all" && S.ss !== "all" ? `n${sc.n_dus}_s${+sc.s}_${sc.load_class ?? "any"}` : null;
+  const head = `<div class="sec-h" style="margin-top:4px">
+      <span class="muted">method</span><select id="dm">${series.map(x => `<option value="${esc(x.key)}">${esc(x.label)}</option>`).join("")}</select>
+      <span class="muted">seed</span><select id="ds">${run.seeds.map(x => `<option value="${x}">${x}</option>`).join("")}</select>
+      <span class="muted">x</span><select id="dx"></select><label class="chk"><input type="checkbox" id="dlx"> log</label>
+      <span class="muted">y</span><select id="dy"></select><label class="chk"><input type="checkbox" id="dly"> log</label></div>`;
+  if (!scId) { body.innerHTML = head + `<div class="empty">Choose one scenario (an n_dus and an s, not "all") in the selector at the top.</div>`; wireDec(body, [], series, run); return; }
+  const url = `/api/decisions/${run.id.split("/").map(encodeURIComponent).join("/")}?method=${encodeURIComponent(s.method)}&scenario=${encodeURIComponent(scId)}&seed=${D.seed}`;
+  body.innerHTML = head + `<div class="empty">loading the decisions of ${esc(s.method)} · ${esc(scId)} · seed ${D.seed} (the first time a cell without saved records is re-simulated: a few seconds to minutes)…</div>`;
+  wireDec(body, [], series, run);
+  const data = S.decCache[url] ?? (S.decCache[url] = await (await fetch(url)).json());
+  if (S.tab !== "decisions" || S.dec.key !== D.key) return;
+  if (data.error) { body.innerHTML = head + `<div class="empty">${esc(data.error)}</div>`; wireDec(body, [], series, run); return; }
+  const deciding = data.servers.filter(v => v.executors.length > 1);
+  const pct = (a, n) => n ? ` ${(100 * a / n).toFixed(1)} %` : "";
+  const card = (id, title, sub, legend) => `<div class="card"><div class="ch"><b>${title}</b></div><div class="sub">${sub}</div>
+      <div class="legend" style="margin:6px 0">${legend}</div><div class="plot" id="${id}"></div></div>`;
+  body.innerHTML = head + `<div class="muted" style="font-size:12px">${esc(scId)} · seed ${D.seed} · source: ${esc(data.source)}. Up to 6,000 points per plot (random subset); shares are over all decisions.</div>
+    <div class="dgrid">
+      ${card("dp-sw", "Switch", `one point per job (its transport block), coloured by the server it was sent to · ${data.switch.n_total.toLocaleString()} jobs`,
+        data.switch.counts.map((c, k) => `<span class="lg"><i style="background:${SERVER_C[k % SERVER_C.length]}"></i>server ${k}${pct(c, data.switch.n_total)}</span>`).join(""))}
+      ${deciding.map(v => card(`dp-s${v.server}`, `Server ${v.server}`, `one point per ldpc task its policy decided, coloured by the executor · ${v.n_total.toLocaleString()} tasks`,
+        v.executors.map((e, i) => `<span class="lg"><i style="background:${execColour(e)}"></i>${esc(e)}${pct(v.counts[i], v.n_total)}</span>`).join(""))).join("")}
+    </div>
+    ${data.servers.length > deciding.length ? `<div class="muted" style="font-size:12px">Servers with a single executor (${data.servers.filter(v => v.executors.length < 2).map(v => v.server).join(", ")}) have no choice to show.</div>` : ""}`;
+  wireDec(body, data.axes, series, run);
+  decScatter($("#dp-sw"), data.switch.cols, D.x, D.y, "server", k => SERVER_C[k % SERVER_C.length], k => `server ${k}`, D.logx, D.logy);
+  for (const v of deciding) decScatter($(`#dp-s${v.server}`), v.cols, D.x, D.y, "executor",
+    i => execColour(v.executors[i]), i => v.executors[i], D.logx, D.logy);
+}
+function wireDec(body, axes, series, run) {
+  const D = S.dec, ax = axes.length ? axes : [D.x, D.y];
+  $("#dm").value = D.key; $("#ds").value = String(D.seed);
+  for (const id of ["#dx", "#dy"]) $(id).innerHTML = ax.map(a => `<option value="${a}">${esc(axLabel(a))}</option>`).join("");
+  $("#dx").value = D.x; $("#dy").value = D.y; $("#dlx").checked = D.logx; $("#dly").checked = D.logy;
+  const re = () => { save(); renderView(); };
+  $("#dm").onchange = e => { D.key = e.target.value; re(); };
+  $("#ds").onchange = e => { D.seed = +e.target.value; re(); };
+  $("#dx").onchange = e => { D.x = e.target.value; re(); };
+  $("#dy").onchange = e => { D.y = e.target.value; re(); };
+  $("#dlx").onchange = e => { D.logx = e.target.checked; re(); };
+  $("#dly").onchange = e => { D.logy = e.target.checked; re(); };
+}
+
+function tabCharts(body, { metrics, series, xs }) {
+  const charts = S.charts.filter(m => metrics.includes(m));
+  body.innerHTML = `<div class="sec-h" style="margin-top:4px"><span class="muted" style="font-size:12px;margin-right:auto">Mean over seeds with its 95 % confidence interval, per scenario.</span>
+      <span class="muted">x axis</span>
+      <select id="xmode"><option value="scenario">scenario</option><option value="rho">offered load ρ</option></select>
+      <select id="addm"><option value="">+ add metric…</option>${metrics.filter(m => !charts.includes(m)).map(m => `<option value="${m}">${esc(label(m))}</option>`).join("")}</select></div>
+    <div class="charts">${charts.map((m, i) => `<div class="card"><div class="ch"><b>${esc(label(m))}</b><span class="muted mono" style="font-size:11px">${m === label(m) ? "" : esc(m)}</span><button class="x" data-i="${i}" title="remove">×</button></div><div class="plot" data-m="${m}"></div></div>`).join("")}</div>`;
+  $("#xmode").value = S.xmode;
+  $("#xmode").onchange = e => { S.xmode = e.target.value; save(); renderView(); };
+  $("#addm").onchange = e => { if (e.target.value) { S.charts = [...charts, e.target.value]; save(); renderView(); } };
+  body.querySelectorAll(".card .x").forEach(b => b.onclick = () => { S.charts = charts.filter((_, i) => i !== +b.dataset.i); save(); renderView(); });
+  body.querySelectorAll(".plot").forEach(el => dotChart(el, el.dataset.m, series.map(s => ({ ...s, pts: points(s, el.dataset.m) })), xs, S.xmode));
+}
+
+/* mean ± CI per scenario (rows) x method (columns); paired difference to a baseline method by seed */
+function tabTable(body, { metrics, series, xs }) {
+  const base = series.find(s => s.key === S.baseline), m = S.tableMetric;
+  const cellsOf = s => (s.run.cells || []).filter(c => c.method === s.method);
+  const val = (s, sc) => {
+    if (!base || s.key === base.key) {
+      const a = s.run.aggregate.find(a => a.method === s.method && a.scenario === sc.id);
+      return a ? pm(a[m], a[m + "_ci95"]) : "–";
+    }
+    const b = new Map(cellsOf(base).filter(c => c.scenario === sc.id).map(c => [c.seed, c[m]]));
+    const r = meanCi(cellsOf(s).filter(c => c.scenario === sc.id && b.has(c.seed)).map(c => c[m] - b.get(c.seed)));
+    return r.n ? (r.mean > 0 ? "+" : "") + pm(r.mean, r.ci) : "–";
+  };
+  body.innerHTML = `<div class="sec-h" style="margin-top:4px"><span class="muted">metric</span><select id="tm">${metrics.map(x => `<option value="${x}">${esc(label(x))}</option>`).join("")}</select>
+      <span class="muted">baseline (paired Δ by seed)</span><select id="bl"><option value="">none</option>${series.map(s => `<option value="${esc(s.key)}">${esc(s.label)}</option>`).join("")}</select></div>
+    <div class="tw"><table><thead><tr><th>scenario</th><th class="num">ρ</th>${series.map(s => `<th class="num"><span style="color:${s.colour}">●</span> ${esc(s.label)}${base && s.key !== base.key ? " Δ" : ""}</th>`).join("")}</tr></thead>
+    <tbody>${xs.map(sc => `<tr><td>${esc(sc.id)}</td><td class="num">${fmt(sc.rho)}</td>${series.map(s => `<td class="num">${val(s, sc)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <div class="muted" style="font-size:12px">Mean ± 95 % CI over seeds${base ? `; Δ columns: mean of (method − ${esc(base.label)}) on the same scenario and seed, i.e. the same traffic and service noise.` : "."}</div>`;
+  $("#tm").value = m; $("#tm").onchange = e => { S.tableMetric = e.target.value; renderView(); };
+  $("#bl").value = S.baseline || ""; $("#bl").onchange = e => { S.baseline = e.target.value || null; renderView(); };
+}
+
+function tabCells(body, { series, multiRun }) {
+  const rows0 = series.flatMap(s => (s.run.cells || []).filter(c => c.method === s.method && matches(c)).map(c => ({ ...c, _s: s, run: `${s.run.experiment} ${s.run.started}` })));
+  const cols = [...(multiRun ? ["run"] : []), "method", "scenario", "seed", "rho", "n_jobs", "job_hit_rate", "energy_per_job_mj", "latency_ms_p99", "ldpc_on_gpu_share", "power_mean_w", "wall_s"].filter(c => rows0.length && c in rows0[0]);
+  const rows = [...rows0];
+  if (S.cellSort) { const [c, dir] = S.cellSort; rows.sort((a, b) => (a[c] > b[c] ? 1 : a[c] < b[c] ? -1 : 0) * dir); }
+  const isNum = c => typeof rows0[0]?.[c] === "number";
+  body.innerHTML = `<div class="tw" style="max-height:520px;margin-top:4px"><table><thead><tr>${cols.map(c => `<th class="sort ${isNum(c) ? "num" : ""}" data-c="${c}">${esc(c)}${S.cellSort?.[0] === c ? (S.cellSort[1] > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${cols.map(c => c === "method" ? `<td><span style="color:${r._s.colour}">●</span> ${esc(r._s.label)}</td>` : `<td class="${isNum(c) ? "num" : ""}">${isNum(c) && !["seed", "n_jobs"].includes(c) ? fmt(r[c]) : esc(r[c])}</td>`).join("")}</tr>`).join("") || `<tr><td class="empty" colspan="${cols.length || 1}">no finished cells</td></tr>`}</tbody></table></div>
+    <div class="muted" style="font-size:12px">One row per (method, scenario, seed); click a header to sort. Every metric is in the run's <span class="mono">summary.csv</span> and the cells' <span class="mono">metrics.json</span>.</div>`;
+  body.querySelectorAll("th.sort").forEach(th => th.onclick = () => { const c = th.dataset.c; S.cellSort = [c, S.cellSort?.[0] === c ? -S.cellSort[1] : 1]; renderView(); });
+}
+
+/* ---------- run info (config, traffic, log) ---------- */
+async function openInfo(id, quiet) {
+  S.info = id; writeHash();
+  await ensureDetails([id]);
+  renderInfo();
+  if (!quiet) $("#runinfo").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderInfo() {
+  const box = $("#runinfo"), d = S.info && S.details[S.info];
+  if (!d || d.error) { box.hidden = true; return; }
+  box.hidden = false;
+  const tabs = ["config", "traffic", "log"];
+  const cols = ["scenario", "seed", "n_jobs", "T_ms", "jobs_per_ms", "rho", "rho_peak"].filter(c => d.traffic.length && c in d.traffic[0]);
+  const body = {
+    config: () => `<pre>${esc(d.config)}</pre>`,
+    traffic: () => d.traffic.length ? `<div class="tw"><table><thead><tr>${cols.map(c => `<th class="${c === "scenario" ? "" : "num"}">${c}</th>`).join("")}</tr></thead>
+      <tbody>${d.traffic.map(r => `<tr>${cols.map(c => c === "scenario" ? `<td>${esc(r[c])}</td>` : `<td class="num">${["seed", "n_jobs"].includes(c) ? r[c] : fmt(r[c])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <div class="muted" style="font-size:12px">One TaskStream per (scenario, seed), shared by every method of the run (ADR-0021).</div>` : `<div class="empty">no traffic.csv yet</div>`,
+    log: () => (d.report ? `<div class="cap">report.md</div><pre>${esc(d.report)}</pre>` : "") + `<div class="cap" style="margin-top:10px">log.txt (last 40 lines)</div><pre>${esc(d.log_tail.join("\n"))}</pre>`,
+  };
+  box.innerHTML = `<div class="sec-h"><h2>Run ${esc(d.experiment)} <span class="muted mono" style="font-size:12px;font-weight:500">${esc(d.run)}</span></h2><button class="btn" id="infoclose">Close</button></div>
+    <div class="meta"><span class="pill ${d.status}">${d.status}</span><span>started <b>${esc(d.started)}</b></span><span>cells <b>${d.n_done}/${d.n_cells}</b></span>
+      <span>split <b>${esc(d.split)}</b></span><span>seeds <b>${esc(d.seeds.join(", "))}</b></span><span>git <b class="mono">${esc(d.git.slice(0, 10))}</b></span></div>
+    <div class="tabs">${tabs.map(t => `<button class="tab ${t === S.infoTab ? "on" : ""}" data-t="${t}">${t}</button>`).join("")}</div><div>${body[S.infoTab]()}</div>`;
+  $("#infoclose").onclick = () => { S.info = null; box.hidden = true; writeHash(); };
+  box.querySelectorAll(".tab").forEach(b => b.onclick = () => { S.infoTab = b.dataset.t; renderInfo(); });
+}
+
+/* ---------- scenario selector ---------- */
+function renderScenarioBar() {
+  const scs = S.runs.flatMap(r => r.scenarios);
+  const nds = [...new Set(scs.map(x => +x.n_dus))].sort((a, b) => a - b), ss = [...new Set(scs.map(x => +x.s))].sort((a, b) => a - b);
+  // default: the first scenario (not the mean); keep a stored choice while it exists
+  if (S.nd === null || (S.nd !== "all" && !nds.includes(+S.nd))) S.nd = nds[0] ?? "all";
+  if (S.ss === null || (S.ss !== "all" && !ss.includes(+S.ss))) S.ss = ss[0] ?? "all";
+  $("#scn").innerHTML = nds.map(v => `<option value="${v}">${v}</option>`).join("") + `<option value="all">all (mean)</option>`;
+  $("#scs").innerHTML = ss.map(v => `<option value="${v}">${v}</option>`).join("") + `<option value="all">all (mean)</option>`;
+  $("#scn").value = String(S.nd); $("#scs").value = String(S.ss);
+  const sc = S.runs.flatMap(r => r.headline).filter(matches);
+  $("#schint").textContent = `${scLabel()} · ρ ${sc.length ? fmt(mean(sc.map(h => h.rho))) : "–"}${S.nd === "all" || S.ss === "all" ? " · values averaged over the scenarios marked all" : ""}`;
+}
+const pickSc = v => v === "all" ? "all" : +v;
+$("#scn").onchange = e => { S.nd = pickSc(e.target.value); save(); renderScenarioBar(); changed(); };
+$("#scs").onchange = e => { S.ss = pickSc(e.target.value); save(); renderScenarioBar(); changed(); };
+
+/* ---------- wiring ---------- */
+function writeHash() {
+  const parts = [];
+  if (S.sel.length) parts.push("sel=" + S.sel.map(encodeURIComponent).join(","));
+  if (S.info) parts.push("info=" + encodeURIComponent(S.info));
+  history.replaceState(null, "", parts.length ? "#" + parts.join("&") : location.pathname);
+}
+function changed() { writeHash(); renderMethods(); renderOverview(); renderView(); }
+
+$("#refresh").onclick = async () => { await loadRuns(); renderScenarioBar(); changed(); if (S.info) openInfo(S.info, true); };
+$("#filter").oninput = renderMethods;
+$("#clear").onclick = () => { [...S.sel].forEach(k => select(k, false)); changed(); };
+$("#ovx").onchange = e => { S.ovx = e.target.value; save(); renderOverview(); };
+$("#ovy").onchange = e => { S.ovy = e.target.value; save(); renderOverview(); };
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { renderOverview(); renderView(); }, 150); });
+setInterval(async () => {
+  if (!$("#auto").checked || !S.runs.some(r => r.status === "running")) return;
+  await loadRuns(); changed(); if (S.info) openInfo(S.info, true);
+}, 10000);
+
+loadRuns().then(() => {
+  renderScenarioBar();
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get("sel")) h.get("sel").split(",").map(decodeURIComponent).forEach(k => runById(splitKey(k)[0]) && select(k, true));
+  else if (S.runs.length) S.runs[0].methods.slice(0, N_SLOTS).forEach(m => select(keyOf(S.runs[0].id, m), true));  // newest run
+  changed();
+  if (h.get("info")) openInfo(decodeURIComponent(h.get("info")), true);
+}).catch(err => { $("#root").textContent = "could not load /api/results: " + err; });
+</script>
+</body>
+</html>

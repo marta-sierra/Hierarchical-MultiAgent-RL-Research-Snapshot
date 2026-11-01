@@ -1,0 +1,23 @@
+# Benchmark of deterministic policies (ADR-0021). Grid decided by the author as a starting point:
+# low load is the usual regime (n_dus 1..16), with 32 and 64 for higher load; s up to 8, where the
+# cell saturates (13 % of the bits expire at 1 DU). The number of seeds is still a proposal.
+name: benchmark
+seeds: [0, 1, 2, 3, 4]
+split: test
+topology: configs/topology/example.yaml
+sim: configs/sim/default.yaml
+traffic: configs/traffic/default.yaml
+scenarios: configs/scenarios/grid.yaml   # the 28-scenario grid (n_dus x s)
+methods:
+  - {name: random, switch: random, server: random}
+  - {name: rr, switch: round_robin, server: round_robin}
+  - {name: rr_gpu, switch: round_robin, server: all_gpu}
+  - {name: ll_lq, switch: least_loaded, server: least_queued}
+  - {name: ll_cpu, switch: least_loaded, server: all_cpu}
+  - {name: ll_gpu, switch: least_loaded, server: all_gpu}
+  # service oracle (exact sigma and energy, ADR-0014): upper-bound references
+  - {name: ll_fastest, switch: least_loaded, server: fastest}
+  - {name: ll_cheapest, switch: least_loaded, server: cheapest}
+  - {name: ll_ws05, switch: least_loaded, server: {name: weighted_score, alpha: 0.5}}
+save_records: true
+check_invariants: false

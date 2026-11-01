@@ -1,0 +1,9 @@
+# Simulator parameters (sim.SimConfig). Times in ms (ADR-0012).
+deadline_ms: 1.0          # D: job deadline = t_arrival_ms + D (ADR-0013); 1 ms as in CloudRIC
+links:                    # ADR-0014
+  downlink_ms: 0.1
+  uplink_ms: 0.1
+oracle_cluster: false     # explicit oracle modes (ADR-0014): every server's current state ...
+oracle_service: false     # ... or the exact service time and energy on each executor
+estimator: last_report    # none | last_report (ADR-0014)
+load_window_ms: 10.0      # sliding window of the arrival rates in c_t and ServerObs (ADR-0014); provisional
